@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { addClientAndBriefToFirestore, type BehaviouralBriefFormValues } from '@/lib/dataService';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -107,7 +107,7 @@ export default function BehaviouralBriefPage() {
         submissionDate: newDateForNextForm, // Ensure this is part of the reset
       });
     } catch (err) {
-      console.error("Error submitting behavioural brief:", err);
+      console.error("Error submitting behavioural brief to Firestore:", err);
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
       toast({
         title: "Submission Error",
@@ -335,15 +335,14 @@ export default function BehaviouralBriefPage() {
             {/* Hidden input for submissionDate, automatically populated */}
             <input type="hidden" {...register("submissionDate")} />
 
-            <div className="pt-6 flex justify-center"> {/* Spacing for the submit button */}
+            <div className="pt-6"> {/* Spacing for the submit button */}
               <Button
                 type="submit"
-                size="lg"
-                className="bg-[#4f6749] text-black hover:bg-[#4f6749]/90"
+                className="w-full h-12 text-base bg-[#4f6749] text-black hover:bg-[#4f6749]/90"
                 disabled={isSubmitting}
-                tooltip="Submit Behavioural Brief"
               >
-                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                Submit Behavioural Brief
               </Button>
             </div>
           </form>

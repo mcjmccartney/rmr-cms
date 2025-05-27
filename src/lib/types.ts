@@ -1,5 +1,5 @@
 
-// Removed Firebase dependency - using standard Date/string types
+// Using string for timestamps instead of Firebase Timestamp
 
 // Primarily contact information and links to behavioural forms
 export interface Client {

@@ -5,6 +5,23 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Formats time string to remove seconds
+ * @param time - Time string in format "HH:MM:SS" or "HH:MM"
+ * @returns Time string in format "HH:MM"
+ */
+export function formatTimeWithoutSeconds(time: string | undefined): string {
+  if (!time) return '';
+
+  // If time already doesn't have seconds, return as is
+  if (time.split(':').length === 2) {
+    return time;
+  }
+
+  // Remove seconds from time string (HH:MM:SS -> HH:MM)
+  return time.split(':').slice(0, 2).join(':');
+}
+
 export function formatFullNameAndDogName(
   ownerFullName: string,
   dogName?: string | null

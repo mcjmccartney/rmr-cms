@@ -13,9 +13,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-
+import { useToast } from "@/hooks/use-toast";
 import { addClientAndBriefToFirestore, type BehaviouralBriefFormValues } from '@/lib/dataService';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -46,7 +46,7 @@ const sessionTypeOptions = [
 export default function BehaviouralBriefPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentSubmissionDate, setCurrentSubmissionDate] = useState('');
-
+  const { toast } = useToast();
 
   const memoizedDefaultValues = useMemo<BehaviouralBriefFormValues>(() => ({
     ownerFirstName: '',
@@ -88,6 +88,10 @@ export default function BehaviouralBriefPage() {
       };
 
       await addClientAndBriefToFirestore(submissionDataWithPreciseTimestamp);
+      toast({
+        title: "Submission Successful!",
+        description: "Thank you for submitting your Behavioural Brief. We will be in touch shortly.",
+      });
 
       const newDateForNextForm = format(new Date(), "yyyy-MM-dd HH:mm:ss");
       setCurrentSubmissionDate(newDateForNextForm);
@@ -96,7 +100,13 @@ export default function BehaviouralBriefPage() {
         submissionDate: newDateForNextForm,
       });
     } catch (err) {
-      console.error("Error submitting behavioural brief:", err);
+      console.error("Error submitting behavioural brief to Firestore:", err);
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast({
+        title: "Submission Error",
+        description: `There was a problem submitting your form: ${errorMessage}. Please try again.`,
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -298,15 +308,14 @@ export default function BehaviouralBriefPage() {
 
             <input type="hidden" {...register("submissionDate")} />
 
-            <div className="pt-6 flex justify-center">
+            <div className="pt-6">
               <Button
                 type="submit"
-                size="lg"
-                className="bg-[#4f6749] text-[#ebeadf] hover:bg-[#4f6749]/90"
+                className="w-full h-12 text-base bg-[#4f6749] text-[#ebeadf] hover:bg-[#4f6749]/90"
                 disabled={isSubmitting}
-                tooltip="Submit Behavioural Brief"
               >
-                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                Submit Behavioural Brief
               </Button>
             </div>
           </form>

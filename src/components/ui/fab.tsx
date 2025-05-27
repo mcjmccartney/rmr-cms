@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { signOutUser } from '@/lib/dataService';
 import { useToast } from "@/hooks/use-toast";
 
 interface FabProps extends ButtonProps {
@@ -21,12 +20,12 @@ const Fab = React.forwardRef<HTMLButtonElement, FabProps>(
     const pathname = usePathname();
     const router = useRouter();
     const { toast } = useToast();
-    const { user } = useAuth(); // For logout
+    const { user, signOut } = useAuth(); // For logout
 
     const handleLogout = async () => {
       if (!user) return; // Should not happen if FAB is shown for authenticated users
       try {
-        await signOutUser();
+        await signOut();
         toast({ title: "Logged Out", description: "You have been successfully logged out." });
         setActionsOpen(false); // Close FAB actions
         router.replace('/login');

@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Session } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
+import { formatTimeWithoutSeconds } from '@/lib/utils';
 
 const mockSessions: Session[] = [
   { id: '1', clientId: '1', clientName: 'Alice Wonderland', dogName: 'Cheshire', date: '2024-07-29', time: '10:00 AM', status: 'Scheduled' },
@@ -35,7 +36,7 @@ export default function CalendarPage() {
   }, [date]);
 
   const selectedDateString = date ? format(date, 'yyyy-MM-dd') : null;
-  const sessionsOnSelectedDate = selectedDateString 
+  const sessionsOnSelectedDate = selectedDateString
     ? mockSessions.filter(s => s.date === selectedDateString)
     : [];
 
@@ -45,7 +46,7 @@ export default function CalendarPage() {
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Session Calendar</h1>
         <Button>Schedule New Session</Button>
       </div>
-      
+
       <Tabs defaultValue="month" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="day">Day</TabsTrigger>
@@ -61,10 +62,10 @@ export default function CalendarPage() {
                   selected={date}
                   onSelect={setDate}
                   className="rounded-md"
-                  modifiers={{ 
-                    scheduled: mockSessions.map(s => parseISO(s.date)) 
+                  modifiers={{
+                    scheduled: mockSessions.map(s => parseISO(s.date))
                   }}
-                  modifiersStyles={{ 
+                  modifiersStyles={{
                     scheduled: { border: "2px solid hsl(var(--primary))", borderRadius: 'var(--radius)'}
                   }}
                 />
@@ -82,7 +83,7 @@ export default function CalendarPage() {
                     {sessionsOnSelectedDate.map(session => (
                       <li key={session.id} className="p-3 rounded-md border bg-card hover:bg-muted/50 transition-colors">
                         <div className="font-semibold">{session.clientName} & {session.dogName}</div>
-                        <div className="text-sm text-muted-foreground">{session.time}</div>
+                        <div className="text-sm text-muted-foreground">{formatTimeWithoutSeconds(session.time)}</div>
                         <Badge variant={session.status === 'Scheduled' ? 'default' : 'secondary'} className="mt-1">{session.status}</Badge>
                       </li>
                     ))}

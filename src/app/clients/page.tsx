@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { Client, Session, BehaviouralBrief, BehaviourQuestionnaire, Address, EditableClientData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Loader2, Edit, Trash2, Info, FileQuestion, ArrowLeft, SquareCheck, CalendarDays as CalendarIconLucide, Filter, Check, UserPlus, Save, Eye, FileText, X } from 'lucide-react';
+import { Loader2, Edit, Trash2, Info, FileQuestion, ArrowLeft, SquareCheck, CalendarDays as CalendarIconLucide, Filter, Check, UserPlus } from 'lucide-react';
 import Image from 'next/image';
 import {
   Sheet,
@@ -51,15 +51,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-
+import { useToast } from "@/hooks/use-toast";
 import {
   getClients,
-  addClientToFirestore as fbAddClient,
-  deleteClientFromFirestore,
-  getBehaviouralBriefByBriefId,
-  getBehaviourQuestionnaireById,
-  updateClientInFirestore,
-  getSessionsFromFirestore,
+  getSessions,
+  addClient,
+  updateClient,
+  deleteClient,
+  getBehaviouralBrief,
+  getBehaviourQuestionnaire,
 } from '@/lib/dataService';
 import { format, parseISO, isValid } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -125,7 +125,7 @@ export default function ClientsPage() {
   const [clientSessionsForView, setClientSessionsForView] = useState<Session[]>([]);
   const [memberFilter, setMemberFilter] = useState<MemberFilterType>('all');
 
-
+  const { toast } = useToast();
 
   const addClientForm = useForm<InternalClientFormValues>({
     resolver: zodResolver(internalClientFormSchema),
@@ -159,26 +159,33 @@ export default function ClientsPage() {
   });
 
   const fetchInitialData = async () => {
+    console.log('🚀 fetchInitialData called in clients page at', new Date().toISOString());
     try {
       setIsLoading(true);
       setError(null);
-      const [mockClients, mockSessions] = await Promise.all([
+      console.log('📡 About to call getClients() and getSessions() at', new Date().toISOString());
+      const [supabaseClients, supabaseSessions] = await Promise.all([
         getClients(),
-        getSessionsFromFirestore()
+        getSessions()
       ]);
-      setClients(mockClients.sort((a, b) => {
+      console.log('📦 Received data - clients:', supabaseClients, 'sessions:', supabaseSessions);
+      setClients(supabaseClients.sort((a, b) => {
           const nameA = formatFullNameAndDogName(`${a.ownerFirstName} ${a.ownerLastName}`, a.dogName).toLowerCase();
           const nameB = formatFullNameAndDogName(`${b.ownerFirstName} ${b.ownerLastName}`, b.dogName).toLowerCase();
           if (nameA < nameB) return -1;
           if (nameA > nameB) return 1;
           return 0;
         }));
-      setAllSessions(mockSessions);
+      setAllSessions(supabaseSessions);
     } catch (err) {
       console.error("Error fetching data:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to load data.";
       setError(errorMessage);
-
+      toast({
+        title: "Error Loading Data",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -239,21 +246,23 @@ export default function ClientsPage() {
         isActive: data.isActive === undefined ? true : data.isActive,
         submissionDate: data.submissionDate || format(new Date(), "yyyy-MM-dd HH:mm:ss"),
       };
-      const newClient = await fbAddClient(clientDataForFirestore);
-      setClients(prevClients => [...prevClients, newClient].sort((a, b) => {
-          const nameA = formatFullNameAndDogName(`${a.ownerFirstName} ${a.ownerLastName}`, a.dogName).toLowerCase();
-          const nameB = formatFullNameAndDogName(`${b.ownerFirstName} ${b.ownerLastName}`, b.dogName).toLowerCase();
-          if (nameA < nameB) return -1;
-          if (nameA > nameB) return 1;
-          return 0;
-        }));
-
+      const newClient = await addClient(clientDataForFirestore);
+      if (newClient) {
+        setClients(prevClients => [...prevClients, newClient].sort((a, b) => {
+            const nameA = formatFullNameAndDogName(`${a.ownerFirstName} ${a.ownerLastName}`, a.dogName).toLowerCase();
+            const nameB = formatFullNameAndDogName(`${b.ownerFirstName} ${b.ownerLastName}`, b.dogName).toLowerCase();
+            if (nameA < nameB) return -1;
+            if (nameA > nameB) return 1;
+            return 0;
+          }));
+      }
+      toast({ title: "Client Added", description: `${formatFullNameAndDogName(data.ownerFirstName + " " + data.ownerLastName, data.dogName)} has been successfully added.` });
       addClientForm.reset();
       setIsAddClientSheetOpen(false);
     } catch (err) {
       console.error("Error adding client to Firestore:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to add client.";
-
+      toast({ title: "Error Adding Client", description: errorMessage, variant: "destructive" });
     } finally {
       setIsSubmittingSheet(false);
     }
@@ -274,7 +283,7 @@ export default function ClientsPage() {
             isMember: data.isMember || false,
             isActive: data.isActive === undefined ? true : data.isActive,
         };
-        await updateClientInFirestore(clientToEdit.id, updateData);
+        await updateClient(clientToEdit.id, updateData);
         setClients(prevClients => prevClients.map(c => c.id === clientToEdit.id ? { ...c, ...updateData, contactNumber: formatPhoneNumber(data.contactNumber) || data.contactNumber } : c)
         .sort((a, b) => {
           const nameA = formatFullNameAndDogName(`${a.ownerFirstName} ${a.ownerLastName}`, a.dogName).toLowerCase();
@@ -284,13 +293,13 @@ export default function ClientsPage() {
           return 0;
         })
         );
-
+      toast({ title: "Client Updated", description: `${formatFullNameAndDogName(data.ownerFirstName + " " + data.ownerLastName, data.dogName)} has been successfully updated.` });
       setIsEditSheetOpen(false);
       setClientToEdit(null);
     } catch (err) {
         console.error("Error updating client:", err);
         const errorMessage = err instanceof Error ? err.message : "Failed to update client.";
-
+        toast({ title: "Error Updating Client", description: errorMessage, variant: "destructive" });
     } finally {
         setIsSubmittingSheet(false);
     }
@@ -305,9 +314,9 @@ export default function ClientsPage() {
     if (!clientToDelete) return;
     setIsProcessingDelete(true);
     try {
-      await deleteClientFromFirestore(clientToDelete.id);
+      await deleteClient(clientToDelete.id);
       setClients(prev => prev.filter(c => c.id !== clientToDelete.id));
-
+      toast({ title: "Client Deleted", description: `${formatFullNameAndDogName(clientToDelete.ownerFirstName + " " + clientToDelete.ownerLastName, clientToDelete.dogName)} has been deleted.` });
       if (clientForViewSheet && clientForViewSheet.id === clientToDelete.id) {
         setIsViewSheetOpen(false);
         setClientForViewSheet(null);
@@ -315,7 +324,7 @@ export default function ClientsPage() {
     } catch (err) {
       console.error("Error deleting client:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to delete client.";
-
+      toast({ title: "Error Deleting Client", description: errorMessage, variant: "destructive" });
     } finally {
       setIsDeleteDialogOpen(false);
       setClientToDelete(null);
@@ -337,12 +346,12 @@ export default function ClientsPage() {
     if (!clientForViewSheet || !clientForViewSheet.behaviouralBriefId) return;
     setIsLoadingBriefForSheet(true);
     try {
-      const brief = await getBehaviouralBriefByBriefId(clientForViewSheet.behaviouralBriefId);
+      const brief = await getBehaviouralBrief(clientForViewSheet.behaviouralBriefId);
       setBriefForSheet(brief);
       setSheetViewMode('behaviouralBrief');
     } catch (error) {
       console.error("Error fetching brief:", error);
-
+      toast({ title: "Error", description: "Could not load behavioural brief.", variant: "destructive" });
     } finally {
       setIsLoadingBriefForSheet(false);
     }
@@ -352,12 +361,12 @@ export default function ClientsPage() {
     if (!clientForViewSheet || !clientForViewSheet.behaviourQuestionnaireId) return;
     setIsLoadingQuestionnaireForSheet(true);
     try {
-      const questionnaire = await getBehaviourQuestionnaireById(clientForViewSheet.behaviourQuestionnaireId);
+      const questionnaire = await getBehaviourQuestionnaire(clientForViewSheet.behaviourQuestionnaireId);
       setQuestionnaireForSheet(questionnaire);
       setSheetViewMode('behaviourQuestionnaire');
     } catch (error) {
       console.error("Error fetching questionnaire:", error);
-
+      toast({ title: "Error", description: "Could not load behaviour questionnaire.", variant: "destructive" });
     } finally {
       setIsLoadingQuestionnaireForSheet(false);
     }
@@ -393,8 +402,9 @@ export default function ClientsPage() {
             </DropdownMenu>
             <Sheet open={isAddClientSheetOpen} onOpenChange={setIsAddClientSheetOpen}>
                 <SheetTrigger asChild>
-                  <Button size="default" tooltip="Add New Client">
+                  <Button size="sm" className="sm:px-3">
                     <UserPlus className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-2">New Client</span>
                   </Button>
                 </SheetTrigger>
                 <SheetContent className="flex flex-col h-full sm:max-w-md bg-card">
@@ -479,14 +489,9 @@ export default function ClientsPage() {
                       </div>
                     </ScrollArea>
                     <SheetFooter className="border-t pt-4">
-                        <Button
-                          type="submit"
-                          form="addClientFormInSheet"
-                          className="w-full"
-                          disabled={isSubmittingSheet}
-                        >
-                          {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Save Client
+                        <Button type="submit" form="addClientFormInSheet" className="w-full" disabled={isSubmittingSheet}>
+                        {isSubmittingSheet ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                        Save Client
                         </Button>
                     </SheetFooter>
                 </SheetContent>
@@ -503,7 +508,7 @@ export default function ClientsPage() {
       {!isLoading && error && (
         <div className="text-destructive text-center py-10">
           <p>Error loading clients: {error}</p>
-          <p>Please ensure Firebase is configured correctly and you are online.</p>
+          <p>Please ensure your database connection is working and you are online.</p>
         </div>
       )}
       {!isLoading && !error && filteredClients.length === 0 && (
@@ -516,25 +521,24 @@ export default function ClientsPage() {
             return (
               <div
                 key={client.id}
-                className="bg-card shadow-sm rounded-md border border-border cursor-pointer hover:bg-muted/50 transition-colors"
+                className="bg-card shadow-sm rounded-md py-3 px-4 cursor-pointer hover:bg-muted/50"
                 onClick={() => { setClientForViewSheet(client); setIsViewSheetOpen(true); }}
               >
-                <div className="p-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Image
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {client.isMember && (
+                        <Image
                         src="https://iili.io/34300ox.md.jpg"
-                        alt="RMR Logo"
-                        width={32}
-                        height={32}
+                        alt="Member Icon"
+                        width={28}
+                        height={28}
                         className="rounded-md"
                         data-ai-hint="company logo"
-                      />
-                      <div>
-                        <h3 className="text-sm font-semibold">{displayName}</h3>
-                      </div>
-                    </div>
+                        />
+                    )}
+                    <h3 className="text-sm font-semibold">{displayName}</h3>
                   </div>
+                  {/* Removed DropdownMenu for this view */}
                 </div>
               </div>
             );
@@ -614,20 +618,14 @@ export default function ClientsPage() {
               </div>
             </ScrollArea>
             <SheetFooter className="border-t pt-4">
-              <Button
-                type="submit"
-                form="editClientFormInSheet"
-                className="w-full"
-                disabled={isSubmittingSheet}
-              >
-                {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
+              <Button type="submit" form="editClientFormInSheet" className="w-full" disabled={isSubmittingSheet}>
+                {isSubmittingSheet ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Edit className="mr-2 h-4 w-4" />} Save Changes
               </Button>
             </SheetFooter>
           </SheetContent>
         </Sheet>
 
-        <Sheet open={isViewSheetOpen} onOpenChange={(isOpen) => { setIsViewSheetOpen(isOpen); if (!isOpen) { setClientForViewSheet(null); setSheetViewMode('clientInfo'); } }}>
+        <Sheet open={isViewSheetOpen} onOpenChange={(isOpen) => { setIsViewSheetOpen(isOpen); if (!isOpen) setClientForViewSheet(null); }}>
             <SheetContent className="flex flex-col h-full sm:max-w-lg bg-card">
                 <SheetHeader>
                      <SheetTitle>{clientForViewSheet ? formatFullNameAndDogName(clientForViewSheet.ownerFirstName + " " + clientForViewSheet.ownerLastName, clientForViewSheet.dogName) : "Client Details"}</SheetTitle>
@@ -666,25 +664,13 @@ export default function ClientsPage() {
 
                                 <div className="mt-6 space-y-2">
                                   {clientForViewSheet.behaviouralBriefId && (
-                                      <Button
-                                        onClick={handleViewBrief}
-                                        className="w-full"
-                                        variant="outline"
-                                        disabled={isLoadingBriefForSheet}
-                                      >
-                                        {isLoadingBriefForSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        View Behavioural Brief
+                                      <Button onClick={handleViewBrief} className="w-full" variant="outline" disabled={isLoadingBriefForSheet}>
+                                      {isLoadingBriefForSheet ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Info className="mr-2 h-4 w-4" />} View Behavioural Brief
                                       </Button>
                                   )}
                                   {clientForViewSheet.behaviourQuestionnaireId && (
-                                      <Button
-                                        onClick={handleViewQuestionnaire}
-                                        className="w-full"
-                                        variant="outline"
-                                        disabled={isLoadingQuestionnaireForSheet}
-                                      >
-                                        {isLoadingQuestionnaireForSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        View Behaviour Questionnaire
+                                      <Button onClick={handleViewQuestionnaire} className="w-full" variant="outline" disabled={isLoadingQuestionnaireForSheet}>
+                                      {isLoadingQuestionnaireForSheet ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SquareCheck className="mr-2 h-4 w-4" />} View Behaviour Questionnaire
                                       </Button>
                                   )}
                                 </div>
@@ -723,8 +709,10 @@ export default function ClientsPage() {
 
                         {sheetViewMode === 'behaviouralBrief' && briefForSheet && (
                             <div>
-                                <div className="flex justify-center items-center mb-3">
+                                <div className="flex justify-between items-center mb-3">
+                                    <Button variant="ghost" size="icon" onClick={() => setSheetViewMode('clientInfo')}><ArrowLeft className="h-4 w-4" /> </Button>
                                     <h4 className="text-lg font-semibold">Behavioural Brief</h4>
+                                    <div className="w-9 h-9"></div> {/* Spacer */}
                                 </div>
                                 <Separator className="mb-3" />
                                 <DetailRow label="Dog Name:" value={briefForSheet.dogName} />
@@ -741,8 +729,10 @@ export default function ClientsPage() {
 
                         {sheetViewMode === 'behaviourQuestionnaire' && questionnaireForSheet && (
                             <div>
-                                <div className="flex justify-center items-center mb-3">
+                                <div className="flex justify-between items-center mb-3">
+                                    <Button variant="ghost" size="icon" onClick={() => setSheetViewMode('clientInfo')}><ArrowLeft className="h-4 w-4" /> </Button>
                                     <h4 className="text-lg font-semibold">Behaviour Questionnaire</h4>
+                                     <div className="w-9 h-9"></div> {/* Spacer */}
                                 </div>
                                 <Separator className="mb-3" />
                                 <DetailRow label="Dog Name:" value={questionnaireForSheet.dogName} />
@@ -798,42 +788,33 @@ export default function ClientsPage() {
                     )}
                   </div>
                 </ScrollArea>
-                <SheetFooter className="border-t pt-4 flex-row gap-2">
-                    {sheetViewMode === 'clientInfo' ? (
-                        <>
-                            <Button
-                                variant="outline"
-                                className="flex-1"
-                                onClick={() => {
-                                    if (clientForViewSheet) {
-                                    setClientToEdit(clientForViewSheet);
-                                    setIsEditSheetOpen(true);
-                                    setIsViewSheetOpen(false);
-                                    }
-                                }}
-                                disabled={isProcessingDelete}
-                            >
-                                Edit Contact
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                className="flex-1"
-                                onClick={() => clientForViewSheet && handleDeleteClientRequest(clientForViewSheet)}
-                                disabled={isProcessingDelete}
-                            >
-                                  {isProcessingDelete && clientToDelete && clientToDelete.id === clientForViewSheet?.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                                Delete Client
-                            </Button>
-                        </>
-                    ) : (
+                <SheetFooter className="border-t pt-4">
+                    <div className="flex w-full gap-2">
                         <Button
                             variant="outline"
-                            className="w-full"
-                            onClick={() => setSheetViewMode('clientInfo')}
-                            >
-                            Back to Client Details
+                            className="flex-1"
+                            onClick={() => {
+                                if (clientForViewSheet) {
+                                setClientToEdit(clientForViewSheet);
+                                setIsEditSheetOpen(true);
+                                setIsViewSheetOpen(false);
+                                }
+                            }}
+                            disabled={isProcessingDelete || sheetViewMode !== 'clientInfo'}
+                        >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Contact
                         </Button>
-                    )}
+                        <Button
+                            variant="destructive"
+                            className="flex-1"
+                            onClick={() => clientForViewSheet && handleDeleteClientRequest(clientForViewSheet)}
+                            disabled={isProcessingDelete || sheetViewMode !== 'clientInfo'}
+                        >
+                              {isProcessingDelete && clientToDelete && clientToDelete.id === clientForViewSheet?.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
+                            Delete Client
+                        </Button>
+                    </div>
                 </SheetFooter>
             </SheetContent>
         </Sheet>

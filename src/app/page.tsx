@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  X,
   CalendarDays as CalendarIconLucide,
   Clock,
   DollarSign,
@@ -27,10 +28,8 @@ import {
   ArrowLeft,
   UserPlus,
   CalendarPlus,
-  Save,
-  FileText,
   FileQuestion,
-  X
+  SquareCheck
 } from 'lucide-react';
 import { DayPicker, type DateFormatter, type DayProps } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
@@ -96,17 +95,17 @@ import {
 import {
   getClients,
   getClientById,
-  getSessionsFromFirestore,
-  addSessionToFirestore,
-  deleteSessionFromFirestore,
-  addClientToFirestore as fbAddClient,
-  updateSessionInFirestore,
-  updateClientInFirestore,
-  getBehaviouralBriefByBriefId,
-  getBehaviourQuestionnaireById,
+  getSessions,
+  addSession,
+  deleteSession,
+  addClient,
+  updateSession,
+  updateClient,
+  getBehaviouralBrief,
+  getBehaviourQuestionnaire,
 } from '@/lib/dataService';
-
-import { cn, formatFullNameAndDogName } from '@/lib/utils';
+import { useToast } from "@/hooks/use-toast";
+import { cn, formatFullNameAndDogName, formatTimeWithoutSeconds } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar as ShadCalendar } from '@/components/ui/calendar';
 import { Separator } from '@/components/ui/separator';
@@ -198,7 +197,7 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
-
+  const { toast } = useToast();
 
   const addClientForm = useForm<InternalClientFormValuesDash>({
     resolver: zodResolver(internalClientFormSchema),
@@ -327,18 +326,19 @@ export default function HomePage() {
   const fetchDashboardData = async () => {
     try {
       setIsLoadingData(true);
-      const [mockClients, mockSessions] = await Promise.all([
+
+      const [supabaseClients, supabaseSessions] = await Promise.all([
         getClients(),
-        getSessionsFromFirestore()
+        getSessions()
       ]);
-      setClients(mockClients.sort((a, b) => {
+      setClients(supabaseClients.sort((a, b) => {
         const nameA = formatFullNameAndDogName(a.ownerFirstName + " " + a.ownerLastName, a.dogName).toLowerCase();
         const nameB = formatFullNameAndDogName(b.ownerFirstName + " " + b.ownerLastName, b.dogName).toLowerCase();
         if (nameA < nameB) return -1;
         if (nameA > nameB) return 1;
         return 0;
       }));
-      setSessions(mockSessions.sort((a, b) => {
+      setSessions(supabaseSessions.sort((a, b) => {
         const dateA = parseISO(a.date);
         const dateB = parseISO(b.date);
         if (!isValid(dateA) && !isValid(dateB)) return 0;
@@ -356,7 +356,11 @@ export default function HomePage() {
       }));
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
-
+      toast({
+        title: "Error Loading Dashboard Data",
+        description: "Could not fetch client or session data.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoadingData(false);
     }
@@ -382,24 +386,24 @@ export default function HomePage() {
           console.error("Error fetching client for session:", error);
           setClientForSelectedSession(null);
           setIsLoadingClientForSession(false);
-
+          toast({ title: "Error", description: "Could not load client details for this session.", variant: "destructive" });
         });
     } else {
       setClientForSelectedSession(null);
     }
-  }, [isSessionSheetOpen, selectedSessionForSheet]);
+  }, [isSessionSheetOpen, selectedSessionForSheet, toast]);
 
 
   const handleViewBriefForSession = async () => {
     if (!clientForSelectedSession || !clientForSelectedSession.behaviouralBriefId) return;
     setIsLoadingBriefForSessionSheet(true);
     try {
-      const brief = await getBehaviouralBriefByBriefId(clientForSelectedSession.behaviouralBriefId);
+      const brief = await getBehaviouralBrief(clientForSelectedSession.behaviouralBriefId);
       setBriefForSessionSheet(brief);
       setSessionSheetViewMode('behaviouralBrief');
     } catch (error) {
       console.error("Error fetching brief:", error);
-
+      toast({ title: "Error", description: "Could not load behavioural brief.", variant: "destructive" });
     } finally {
       setIsLoadingBriefForSessionSheet(false);
     }
@@ -409,12 +413,12 @@ export default function HomePage() {
     if (!clientForSelectedSession || !clientForSelectedSession.behaviourQuestionnaireId) return;
     setIsLoadingQuestionnaireForSessionSheet(true);
     try {
-      const questionnaire = await getBehaviourQuestionnaireById(clientForSelectedSession.behaviourQuestionnaireId);
+      const questionnaire = await getBehaviourQuestionnaire(clientForSelectedSession.behaviourQuestionnaireId);
       setQuestionnaireForSessionSheet(questionnaire);
       setSessionSheetViewMode('behaviourQuestionnaire');
     } catch (error) {
       console.error("Error fetching questionnaire:", error);
-
+      toast({ title: "Error", description: "Could not load behaviour questionnaire.", variant: "destructive" });
     } finally {
       setIsLoadingQuestionnaireForSessionSheet(false);
     }
@@ -449,21 +453,23 @@ export default function HomePage() {
         isActive: data.isActive === undefined ? true : data.isActive,
         submissionDate: data.submissionDate || format(new Date(), "yyyy-MM-dd HH:mm:ss"),
       };
-      const newClient = await fbAddClient(clientDataForFirestore);
-      setClients(prevClients => [...prevClients, newClient].sort((a, b) => {
-        const nameA = formatFullNameAndDogName(a.ownerFirstName + " " + a.ownerLastName, a.dogName).toLowerCase();
-        const nameB = formatFullNameAndDogName(b.ownerFirstName + " " + b.ownerLastName, b.dogName).toLowerCase();
-        if (nameA < nameB) return -1;
-        if (nameA > nameB) return 1;
-        return 0;
-      }));
-
+      const newClient = await addClient(clientDataForFirestore);
+      if (newClient) {
+        setClients(prevClients => [...prevClients, newClient].sort((a, b) => {
+          const nameA = formatFullNameAndDogName(a.ownerFirstName + " " + a.ownerLastName, a.dogName).toLowerCase();
+          const nameB = formatFullNameAndDogName(b.ownerFirstName + " " + b.ownerLastName, b.dogName).toLowerCase();
+          if (nameA < nameB) return -1;
+          if (nameA > nameB) return 1;
+          return 0;
+        }));
+      }
+      toast({ title: "Client Added", description: `${formatFullNameAndDogName(data.ownerFirstName + " " + data.ownerLastName, data.dogName)} has been successfully added.` });
       addClientForm.reset();
       setIsAddClientSheetOpen(false);
     } catch (err) {
       console.error("Error adding client to Firestore:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to add client.";
-
+      toast({ title: "Error Adding Client", description: errorMessage, variant: "destructive" });
     } finally {
       setIsSubmittingSheet(false);
     }
@@ -473,7 +479,7 @@ export default function HomePage() {
     setIsSubmittingSheet(true);
     const selectedClient = clients.find(c => c.id === data.clientId);
     if (!selectedClient) {
-
+      toast({ title: "Error", description: "Selected client not found.", variant: "destructive" });
       setIsSubmittingSheet(false);
       return;
     }
@@ -489,8 +495,9 @@ export default function HomePage() {
     };
 
     try {
-      const newSession = await addSessionToFirestore(sessionData);
-      setSessions(prev => [newSession, ...prev].sort((a, b) => {
+      const newSession = await addSession(sessionData);
+      if (newSession) {
+        setSessions(prev => [newSession, ...prev].sort((a, b) => {
         const dateA = parseISO(a.date);
         const dateB = parseISO(b.date);
         if (!isValid(dateA) && !isValid(dateB)) return 0;
@@ -505,13 +512,14 @@ export default function HomePage() {
         if (!isValid(dateTimeB)) return -1;
 
         return dateTimeB.getTime() - dateTimeA.getTime();
-      }));
-
+        }));
+      }
+      toast({ title: "Session Added", description: `Session on ${format(data.date, 'PPP')} at ${data.time} scheduled.` });
       setIsAddSessionSheetOpen(false);
       resetAddSessionForm();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to add session.";
-
+      toast({ title: "Error Adding Session", description: errorMessage, variant: "destructive" });
     } finally {
       setIsSubmittingSheet(false);
     }
@@ -532,7 +540,7 @@ export default function HomePage() {
     const selectedClient = clients.find(c => c.id === data.clientId);
 
     try {
-      await updateSessionInFirestore(sessionToEdit.id, sessionDataToUpdate);
+      await updateSession(sessionToEdit.id, sessionDataToUpdate);
       setSessions(prevSessions =>
         prevSessions.map(s =>
           s.id === sessionToEdit.id
@@ -554,12 +562,12 @@ export default function HomePage() {
              return dateTimeB.getTime() - dateTimeA.getTime();
         })
       );
-
+      toast({ title: "Session Updated", description: `Session on ${format(data.date, 'PPP')} at ${data.time} updated.` });
       setIsEditSessionSheetOpen(false);
       setSessionToEdit(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to update session.";
-
+      toast({ title: "Error Updating Session", description: errorMessage, variant: "destructive" });
     } finally {
       setIsSubmittingSheet(false);
     }
@@ -574,14 +582,14 @@ export default function HomePage() {
     if (!sessionToDelete) return;
     setIsSubmittingSheet(true);
     try {
-      await deleteSessionFromFirestore(sessionToDelete.id);
+      await deleteSession(sessionToDelete.id);
       setSessions(prev => prev.filter(s => s.id !== sessionToDelete.id));
-
+      toast({ title: "Session Deleted", description: "The session has been deleted." });
       setIsSessionSheetOpen(false);
       setSelectedSessionForSheet(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to delete session.";
-
+      toast({ title: "Error Deleting Session", description: errorMessage, variant: "destructive" });
     } finally {
       setIsDeleteSessionDialogOpen(false);
       setSessionToDelete(null);
@@ -633,7 +641,7 @@ export default function HomePage() {
                     setIsSessionSheetOpen(true);
                   }}
                 >
-                  {session.time} - {formatFullNameAndDogName(session.clientName, session.dogName)}
+                  {formatTimeWithoutSeconds(session.time)} - {formatFullNameAndDogName(session.clientName, session.dogName)}
                 </Badge>
               ))}
             </div>
@@ -661,49 +669,30 @@ export default function HomePage() {
                 <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight className="h-4 w-4" /></Button>
             </div>
             <div className="flex items-center gap-2">
-                {isSearchExpanded ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="search"
-                      placeholder="Search sessions..."
-                      className="h-9 focus-visible:ring-0 focus-visible:ring-offset-0 w-64 transition-all duration-200"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      autoFocus
-                      onBlur={() => {
-                        if (!searchTerm) {
-                          setIsSearchExpanded(false);
-                        }
-                      }}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setSearchTerm('');
-                        setIsSearchExpanded(false);
-                      }}
-                      tooltip="Clear Search"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setIsSearchExpanded(true)}
-                    tooltip="Search Sessions"
-                  >
-                    <Search className="h-4 w-4" />
-                  </Button>
-                )}
-                    <Sheet open={isAddClientSheetOpen} onOpenChange={setIsAddClientSheetOpen}>
-                      <SheetTrigger asChild>
-                          <Button tooltip="Add New Client">
-                            <UserPlus className="h-4 w-4" />
-                          </Button>
-                      </SheetTrigger>
+                {/* Desktop search - hidden on mobile */}
+                <Input
+                  type="search"
+                  placeholder="Search sessions..."
+                  className="hidden sm:block h-9 focus-visible:ring-0 focus-visible:ring-offset-0 w-full max-w-xs sm:max-w-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {/* Mobile search button - visible only on mobile */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="sm:hidden h-9 w-9"
+                  onClick={() => setIsSearchExpanded(!isSearchExpanded)}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+                <Sheet open={isAddClientSheetOpen} onOpenChange={setIsAddClientSheetOpen}>
+                  <SheetTrigger asChild>
+                      <Button size="sm" className="sm:px-3">
+                        <UserPlus className="h-4 w-4" />
+                        <span className="hidden sm:inline ml-2">New Client</span>
+                      </Button>
+                  </SheetTrigger>
                   <SheetContent className="flex flex-col h-full sm:max-w-md bg-card">
                       <SheetHeader>
                           <SheetTitle>New Client</SheetTitle>
@@ -774,22 +763,18 @@ export default function HomePage() {
                           </div>
                       </ScrollArea>
                         <SheetFooter className="border-t pt-4">
-                          <Button
-                            type="submit"
-                            form="addClientFormInSheetDashboard"
-                            className="w-full"
-                            disabled={isSubmittingSheet}
-                          >
-                            {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Save Client
+                          <Button type="submit" form="addClientFormInSheetDashboard" className="w-full" disabled={isSubmittingSheet}>
+                          {isSubmittingSheet ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                          Save Client
                           </Button>
                       </SheetFooter>
                   </SheetContent>
                 </Sheet>
                 <Sheet open={isAddSessionSheetOpen} onOpenChange={setIsAddSessionSheetOpen}>
                     <SheetTrigger asChild>
-                        <Button tooltip="Add New Session">
+                        <Button size="sm" className="sm:px-3">
                           <CalendarPlus className="h-4 w-4" />
+                          <span className="hidden sm:inline ml-2">New Session</span>
                         </Button>
                     </SheetTrigger>
                    <SheetContent className="flex flex-col h-full sm:max-w-md bg-card">
@@ -831,7 +816,7 @@ export default function HomePage() {
                                             classNames={{
                                                 day_selected: "bg-[#92351f] text-white focus:bg-[#92351f] focus:text-white !rounded-md",
                                                 day_today: "ring-2 ring-custom-ring-color rounded-md ring-offset-background ring-offset-1 text-custom-ring-color font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none",
-                                                day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 focus-visible:outline-none !rounded-md inline-flex items-center justify-center whitespace-nowrap text-sm transition-colors disabled:pointer-events-none disabled:opacity-50"
+                                                day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-[#92351f] hover:text-white focus-visible:outline-none !rounded-md")
                                             }} />
                                         )} />
                                     </div>
@@ -921,19 +906,39 @@ export default function HomePage() {
                             </div>
                         </ScrollArea>
                         <SheetFooter className="border-t pt-4">
-                            <Button
-                              type="submit"
-                              form="addSessionFormInSheetDashboard"
-                              className="w-full"
-                              disabled={isSubmittingSheet}
-                            >
-                              {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                              Save Session
+                            <Button type="submit" form="addSessionFormInSheetDashboard" className="w-full" disabled={isSubmittingSheet}>
+                                {isSubmittingSheet ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CalendarPlus className="mr-2 h-4 w-4" />} Save Session
                             </Button>
                         </SheetFooter>
                     </SheetContent>
                 </Sheet>
             </div>
+            {/* Mobile search bar - appears below buttons when expanded */}
+            {isSearchExpanded && (
+                <div className="sm:hidden">
+                    <div className="flex items-center gap-2">
+                        <Input
+                          type="search"
+                          placeholder="Search sessions..."
+                          className="h-9 focus-visible:ring-0 focus-visible:ring-offset-0 flex-1"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          autoFocus
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSearchTerm('');
+                            setIsSearchExpanded(false);
+                          }}
+                          className="h-9 w-9"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
 
         <div className="flex-1"> {/* Removed CardContent p-0 */}
@@ -990,25 +995,13 @@ export default function HomePage() {
                     {clientForSelectedSession && (
                         <div className="mt-6 space-y-2">
                         {clientForSelectedSession.behaviouralBriefId && (
-                            <Button
-                              onClick={handleViewBriefForSession}
-                              className="w-full"
-                              variant="outline"
-                              disabled={isLoadingBriefForSessionSheet}
-                            >
-                              {isLoadingBriefForSessionSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                              View Behavioural Brief
+                            <Button onClick={handleViewBriefForSession} className="w-full" variant="outline" disabled={isLoadingBriefForSessionSheet}>
+                            {isLoadingBriefForSessionSheet ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileQuestion className="mr-2 h-4 w-4" />} View Behavioural Brief
                             </Button>
                         )}
                         {clientForSelectedSession.behaviourQuestionnaireId && (
-                            <Button
-                              onClick={handleViewQuestionnaireForSession}
-                              className="w-full"
-                              variant="outline"
-                              disabled={isLoadingQuestionnaireForSessionSheet}
-                            >
-                              {isLoadingQuestionnaireForSessionSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                              View Behaviour Questionnaire
+                            <Button onClick={handleViewQuestionnaireForSession} className="w-full" variant="outline" disabled={isLoadingQuestionnaireForSessionSheet}>
+                            {isLoadingQuestionnaireForSessionSheet ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SquareCheck className="mr-2 h-4 w-4" />} View Behaviour Questionnaire
                             </Button>
                         )}
                         </div>
@@ -1018,8 +1011,12 @@ export default function HomePage() {
 
                 {sessionSheetViewMode === 'behaviouralBrief' && briefForSessionSheet && (
                 <div>
-                    <div className="flex justify-center items-center mb-3">
+                    <div className="flex justify-between items-center mb-3">
+                        <Button variant="ghost" size="sm" onClick={() => setSessionSheetViewMode('sessionInfo')} className="px-2">
+                            <ArrowLeft className="h-4 w-4 mr-1" /> Back to Session Info
+                        </Button>
                         <h4 className="text-lg font-semibold">Behavioural Brief</h4>
+                        <div className="w-36"></div> {/* Spacer */}
                     </div>
                     <Separator className="mb-3" />
                     <DetailRow label="Dog Name:" value={briefForSessionSheet.dogName} />
@@ -1035,8 +1032,12 @@ export default function HomePage() {
 
                 {sessionSheetViewMode === 'behaviourQuestionnaire' && questionnaireForSessionSheet && (
                 <div>
-                    <div className="flex justify-center items-center mb-3">
+                    <div className="flex justify-between items-center mb-3">
+                         <Button variant="ghost" size="sm" onClick={() => setSessionSheetViewMode('sessionInfo')} className="px-2">
+                            <ArrowLeft className="h-4 w-4 mr-1" /> Back to Session Info
+                        </Button>
                         <h4 className="text-lg font-semibold">Behaviour Questionnaire</h4>
+                        <div className="w-36"></div> {/* Spacer */}
                     </div>
                     <Separator className="mb-3" />
                     <DetailRow label="Dog Name:" value={questionnaireForSessionSheet.dogName} />
@@ -1053,41 +1054,32 @@ export default function HomePage() {
 
               </div>
             </ScrollArea>
-            <SheetFooter className="border-t pt-4 flex-row gap-2">
-                {sessionSheetViewMode === 'sessionInfo' ? (
-                    <>
-                        <Button
-                            variant="outline"
-                            className="flex-1"
-                            onClick={() => {
-                                if (selectedSessionForSheet) {
-                                setSessionToEdit(selectedSessionForSheet);
-                                setIsEditSessionSheetOpen(true);
-                                setIsSessionSheetOpen(false);
-                                }
-                            }}
-                            >
-                            Edit Session
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            className="flex-1"
-                            onClick={() => selectedSessionForSheet && handleDeleteSessionRequest(selectedSessionForSheet)}
-                            disabled={isSubmittingSheet && sessionToDelete !== null && sessionToDelete.id === selectedSessionForSheet?.id}
-                            >
-                            {isSubmittingSheet && sessionToDelete?.id === selectedSessionForSheet?.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                            Delete Session
-                        </Button>
-                    </>
-                ) : (
+            <SheetFooter className="border-t pt-4">
+                <div className="flex w-full gap-2">
                     <Button
                         variant="outline"
-                        className="w-full"
-                        onClick={() => setSessionSheetViewMode('sessionInfo')}
+                        className="flex-1"
+                        onClick={() => {
+                            if (selectedSessionForSheet) {
+                            setSessionToEdit(selectedSessionForSheet);
+                            setIsEditSessionSheetOpen(true);
+                            setIsSessionSheetOpen(false);
+                            }
+                        }}
                         >
-                        Back to Session Details
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit Session
                     </Button>
-                )}
+                    <Button
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={() => selectedSessionForSheet && handleDeleteSessionRequest(selectedSessionForSheet)}
+                        disabled={isSubmittingSheet && sessionToDelete !== null && sessionToDelete.id === selectedSessionForSheet?.id}
+                        >
+                        {isSubmittingSheet && sessionToDelete?.id === selectedSessionForSheet?.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
+                        Delete Session
+                    </Button>
+                </div>
             </SheetFooter>
           </SheetContent>
         </Sheet>
@@ -1131,7 +1123,7 @@ export default function HomePage() {
                             classNames={{
                                 day_selected: "bg-[#92351f] text-white focus:bg-[#92351f] focus:text-white !rounded-md",
                                 day_today: "ring-2 ring-custom-ring-color rounded-md ring-offset-background ring-offset-1 text-custom-ring-color font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none",
-                                day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 focus-visible:outline-none !rounded-md inline-flex items-center justify-center whitespace-nowrap text-sm transition-colors disabled:pointer-events-none disabled:opacity-50"
+                                day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-[#92351f] hover:text-white focus-visible:outline-none !rounded-md")
                             }} />
                           )} />
                       </div>
@@ -1218,8 +1210,7 @@ export default function HomePage() {
           </ScrollArea>
           <SheetFooter className="border-t pt-4">
             <Button type="submit" form="editSessionFormInSheetDashboard" className="w-full" disabled={isSubmittingSheet}>
-              {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
+              {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Changes
             </Button>
           </SheetFooter>
         </SheetContent>

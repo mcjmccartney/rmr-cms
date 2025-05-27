@@ -13,9 +13,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-
+import { useToast } from "@/hooks/use-toast";
 import { addClientAndBehaviourQuestionnaireToFirestore, type BehaviourQuestionnaireFormValues } from '@/lib/dataService';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -112,7 +112,7 @@ const sociabilityOptions = ["Sociable", "Nervous", "Reactive", "Disinterested"];
 export default function BehaviourQuestionnairePage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentSubmissionDate, setCurrentSubmissionDate] = useState('');
-
+  const { toast } = useToast();
   // Removed searchParams and existingClientId as linking is now email-based
 
   useEffect(() => {
@@ -198,13 +198,24 @@ export default function BehaviourQuestionnairePage() {
         submissionDate: submissionTimestamp,
       };
 
+      // existingClientId is no longer passed
       await addClientAndBehaviourQuestionnaireToFirestore(submissionData);
+      toast({
+        title: "Submission Successful!",
+        description: "Thank you for submitting your Behaviour Questionnaire. We will be in touch shortly.",
+      });
 
       const newDateForNextForm = format(new Date(), "yyyy-MM-dd HH:mm:ss");
       setCurrentSubmissionDate(newDateForNextForm);
       reset({ ...memoizedDefaultValues, submissionDate: newDateForNextForm });
     } catch (err) {
-      console.error("Error submitting behaviour questionnaire:", err);
+      console.error("Error submitting behaviour questionnaire to Firestore:", err);
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast({
+        title: "Submission Error",
+        description: `There was a problem submitting your form: ${errorMessage}. Please try again.`,
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -538,15 +549,14 @@ export default function BehaviourQuestionnairePage() {
 
             <input type="hidden" {...register("submissionDate")} />
 
-            <div className="pt-6 flex justify-center">
+            <div className="pt-6">
               <Button
                 type="submit"
-                size="lg"
-                className="bg-[#4f6749] text-[#ebeadf] hover:bg-[#4f6749]/90"
+                className="w-full h-12 text-base bg-[#4f6749] text-[#ebeadf] hover:bg-[#4f6749]/90"
                 disabled={isSubmitting}
-                tooltip="Submit Questionnaire"
               >
-                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                Submit Questionnaire
               </Button>
             </div>
           </form>

@@ -8,8 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Settings, LogOut, Loader2, Menu as MenuIcon, UserPlus, CalendarPlus, Search as SearchIcon, X as XIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
-import { signOutUser } from '@/lib/dataService';
-
+import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Fab } from '@/components/ui/fab';
 import { useIsMobile } from '@/hooks/use-mobile'; // Keep for layout padding adjustments
@@ -18,14 +17,14 @@ interface AppLayoutProps {
   children: ReactNode;
 }
 
-const publicPaths = ['/login', '/behavioural-brief', '/behaviour-questionnaire'];
+const publicPaths = ['/login', '/behavioural-brief', '/behaviour-questionnaire', '/clients']; // Added /clients for testing
 const noSidebarPaths = ['/login', '/behavioural-brief', '/behaviour-questionnaire']; // Used to determine if full app layout applies
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-
+  const { toast } = useToast();
 
   const useSpecialBackground =
     pathname === '/behavioural-brief' || pathname === '/behaviour-questionnaire';

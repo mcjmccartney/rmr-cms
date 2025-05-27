@@ -6,13 +6,13 @@ import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { signInUser } from '@/lib/dataService';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, LogIn } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context'; // Import useAuth
 
 const loginSchema = z.object({
@@ -26,7 +26,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user, loading } = useAuth(); // Get user and loading state
+  const { user, loading, signIn } = useAuth(); // Get user, loading state, and signIn function
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -51,17 +51,28 @@ export default function LoginPage() {
   const onSubmit: SubmitHandler<LoginFormValues> = async (data) => {
     setIsSubmitting(true);
     try {
-      await signInUser(data.email, data.password);
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-      router.push('/'); // Redirect to dashboard or desired page after successful login
+      const { user, error } = await signIn(data.email, data.password);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (user) {
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
+        router.push('/'); // Redirect to dashboard or desired page after successful login
+      }
     } catch (error) {
       console.error("Login error:", error);
       let errorMessage = "Failed to login. Please check your credentials.";
-      if (error instanceof Error && (error.message.includes('auth/invalid-credential') || error.message.includes('auth/user-not-found') || error.message.includes('auth/wrong-password'))) {
-        errorMessage = "Invalid email or password.";
+      if (error instanceof Error) {
+        if (error.message.includes('Invalid credentials') || error.message.includes('invalid-credential')) {
+          errorMessage = "Invalid email or password.";
+        } else if (error.message.includes('Mock auth')) {
+          errorMessage = "Use any email with password 'password123' for demo.";
+        }
       }
       toast({
         title: "Login Failed",
@@ -77,7 +88,7 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-[#92351f] p-4">
       <Card className="w-full max-w-sm shadow-xl bg-card text-card-foreground">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-semibold">RMRCMS</CardTitle>
+          <CardTitle className="text-2xl font-semibold">Raising My Rescue</CardTitle>
           <CardDescription>Please sign in to continue</CardDescription>
         </CardHeader>
         <CardContent>
@@ -106,16 +117,10 @@ export default function LoginPage() {
               />
               {errors.password && <p className="text-xs text-destructive mt-1">{errors.password.message}</p>}
             </div>
-            <div className="flex justify-center">
-              <Button
-                type="submit"
-                size="lg"
-                disabled={isSubmitting}
-                tooltip="Sign In"
-              >
-                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <LogIn className="h-5 w-5" />}
-              </Button>
-            </div>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Sign In
+            </Button>
           </form>
         </CardContent>
       </Card>
