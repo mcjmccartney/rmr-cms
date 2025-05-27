@@ -13,7 +13,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
 import { addClientAndBehaviourQuestionnaireToFirestore, type BehaviourQuestionnaireFormValues } from '@/lib/dataService';
 import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -112,7 +111,6 @@ const sociabilityOptions = ["Sociable", "Nervous", "Reactive", "Disinterested"];
 export default function BehaviourQuestionnairePage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentSubmissionDate, setCurrentSubmissionDate] = useState('');
-  const { toast } = useToast();
   // Removed searchParams and existingClientId as linking is now email-based
 
   useEffect(() => {
@@ -200,10 +198,6 @@ export default function BehaviourQuestionnairePage() {
 
       // existingClientId is no longer passed
       await addClientAndBehaviourQuestionnaireToFirestore(submissionData);
-      toast({
-        title: "Submission Successful!",
-        description: "Thank you for submitting your Behaviour Questionnaire. We will be in touch shortly.",
-      });
 
       const newDateForNextForm = format(new Date(), "yyyy-MM-dd HH:mm:ss");
       setCurrentSubmissionDate(newDateForNextForm);
@@ -211,11 +205,6 @@ export default function BehaviourQuestionnairePage() {
     } catch (err) {
       console.error("Error submitting behaviour questionnaire to Firestore:", err);
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-      toast({
-        title: "Submission Error",
-        description: `There was a problem submitting your form: ${errorMessage}. Please try again.`,
-        variant: "destructive",
-      });
     } finally {
       setIsSubmitting(false);
     }

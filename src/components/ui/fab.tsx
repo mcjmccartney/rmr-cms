@@ -26,12 +26,6 @@ const Fab = React.forwardRef<HTMLButtonElement, FabProps>(
       if (!user) return; // Should not happen if FAB is shown for authenticated users
       try {
         await signOut();
-        toast({ title: "Logged Out", description: "You have been successfully logged out." });
-        setActionsOpen(false); // Close FAB actions
-        router.replace('/login');
-      } catch (error) {
-        console.error("Logout error:", error);
-        toast({ title: "Logout Failed", description: "Could not log you out. Please try again.", variant: "destructive" });
       }
     };
 

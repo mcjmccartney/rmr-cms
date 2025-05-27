@@ -51,7 +51,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useToast } from "@/hooks/use-toast";
 import {
   getClients,
   getSessions,
@@ -125,7 +124,6 @@ export default function ClientsPage() {
   const [clientSessionsForView, setClientSessionsForView] = useState<Session[]>([]);
   const [memberFilter, setMemberFilter] = useState<MemberFilterType>('all');
 
-  const { toast } = useToast();
 
   const addClientForm = useForm<InternalClientFormValues>({
     resolver: zodResolver(internalClientFormSchema),
@@ -181,11 +179,6 @@ export default function ClientsPage() {
       console.error("Error fetching data:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to load data.";
       setError(errorMessage);
-      toast({
-        title: "Error Loading Data",
-        description: errorMessage,
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
@@ -256,13 +249,6 @@ export default function ClientsPage() {
             return 0;
           }));
       }
-      toast({ title: "Client Added", description: `${formatFullNameAndDogName(data.ownerFirstName + " " + data.ownerLastName, data.dogName)} has been successfully added.` });
-      addClientForm.reset();
-      setIsAddClientSheetOpen(false);
-    } catch (err) {
-      console.error("Error adding client to Firestore:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to add client.";
-      toast({ title: "Error Adding Client", description: errorMessage, variant: "destructive" });
     } finally {
       setIsSubmittingSheet(false);
     }
@@ -293,13 +279,6 @@ export default function ClientsPage() {
           return 0;
         })
         );
-      toast({ title: "Client Updated", description: `${formatFullNameAndDogName(data.ownerFirstName + " " + data.ownerLastName, data.dogName)} has been successfully updated.` });
-      setIsEditSheetOpen(false);
-      setClientToEdit(null);
-    } catch (err) {
-        console.error("Error updating client:", err);
-        const errorMessage = err instanceof Error ? err.message : "Failed to update client.";
-        toast({ title: "Error Updating Client", description: errorMessage, variant: "destructive" });
     } finally {
         setIsSubmittingSheet(false);
     }
@@ -316,15 +295,6 @@ export default function ClientsPage() {
     try {
       await deleteClient(clientToDelete.id);
       setClients(prev => prev.filter(c => c.id !== clientToDelete.id));
-      toast({ title: "Client Deleted", description: `${formatFullNameAndDogName(clientToDelete.ownerFirstName + " " + clientToDelete.ownerLastName, clientToDelete.dogName)} has been deleted.` });
-      if (clientForViewSheet && clientForViewSheet.id === clientToDelete.id) {
-        setIsViewSheetOpen(false);
-        setClientForViewSheet(null);
-      }
-    } catch (err) {
-      console.error("Error deleting client:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to delete client.";
-      toast({ title: "Error Deleting Client", description: errorMessage, variant: "destructive" });
     } finally {
       setIsDeleteDialogOpen(false);
       setClientToDelete(null);
@@ -351,22 +321,6 @@ export default function ClientsPage() {
       setSheetViewMode('behaviouralBrief');
     } catch (error) {
       console.error("Error fetching brief:", error);
-      toast({ title: "Error", description: "Could not load behavioural brief.", variant: "destructive" });
-    } finally {
-      setIsLoadingBriefForSheet(false);
-    }
-  };
-
-  const handleViewQuestionnaire = async () => {
-    if (!clientForViewSheet || !clientForViewSheet.behaviourQuestionnaireId) return;
-    setIsLoadingQuestionnaireForSheet(true);
-    try {
-      const questionnaire = await getBehaviourQuestionnaire(clientForViewSheet.behaviourQuestionnaireId);
-      setQuestionnaireForSheet(questionnaire);
-      setSheetViewMode('behaviourQuestionnaire');
-    } catch (error) {
-      console.error("Error fetching questionnaire:", error);
-      toast({ title: "Error", description: "Could not load behaviour questionnaire.", variant: "destructive" });
     } finally {
       setIsLoadingQuestionnaireForSheet(false);
     }

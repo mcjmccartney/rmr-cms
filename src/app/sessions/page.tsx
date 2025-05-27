@@ -68,7 +68,6 @@ import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { cn, formatFullNameAndDogName, formatTimeWithoutSeconds } from '@/lib/utils';
-import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -145,7 +144,6 @@ export default function SessionsPage() {
   const [isEditSessionSheetOpen, setIsEditSessionSheetOpen] = useState(false);
   const [sessionToEdit, setSessionToEdit] = useState<Session | null>(null);
 
-  const { toast } = useToast();
 
   const addSessionForm = useForm<SessionFormValues>({
     resolver: zodResolver(sessionFormSchema),
@@ -264,12 +262,10 @@ export default function SessionsPage() {
           console.error("Error fetching client for session:", error);
           setClientForSelectedSession(null);
           setIsLoadingClientForSession(false);
-          toast({ title: "Error", description: "Could not load client details for this session.", variant: "destructive" });
-        });
     } else {
       setClientForSelectedSession(null);
     }
-  }, [isSessionSheetOpen, selectedSessionForSheet, toast]);
+  }, [isSessionSheetOpen, selectedSessionForSheet]);
 
 
   const handleViewBriefForSession = async () => {
@@ -281,22 +277,6 @@ export default function SessionsPage() {
       setSessionSheetViewMode('behaviouralBrief');
     } catch (error) {
       console.error("Error fetching brief:", error);
-      toast({ title: "Error", description: "Could not load behavioural brief.", variant: "destructive" });
-    } finally {
-      setIsLoadingBriefForSessionSheet(false);
-    }
-  };
-
-  const handleViewQuestionnaireForSession = async () => {
-    if (!clientForSelectedSession || !clientForSelectedSession.behaviourQuestionnaireId) return;
-    setIsLoadingQuestionnaireForSessionSheet(true);
-    try {
-      const questionnaire = await getBehaviourQuestionnaire(clientForSelectedSession.behaviourQuestionnaireId);
-      setQuestionnaireForSessionSheet(questionnaire);
-      setSessionSheetViewMode('behaviourQuestionnaire');
-    } catch (error) {
-      console.error("Error fetching questionnaire:", error);
-      toast({ title: "Error", description: "Could not load behaviour questionnaire.", variant: "destructive" });
     } finally {
       setIsLoadingQuestionnaireForSessionSheet(false);
     }
@@ -340,20 +320,6 @@ export default function SessionsPage() {
         console.error("Error fetching data:", err);
         const errorMessage = err instanceof Error ? err.message : "Failed to load data.";
         setError(errorMessage);
-        toast({ title: "Error Loading Data", description: errorMessage, variant: "destructive" });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleAddSessionSubmit: SubmitHandler<SessionFormValues> = async (data) => {
-    setIsSubmittingSheet(true);
-    const selectedClient = clients.find(c => c.id === data.clientId);
-    if (!selectedClient) {
-      toast({ title: "Error", description: "Selected client not found.", variant: "destructive" });
       setIsSubmittingSheet(false);
       return;
     }
@@ -387,87 +353,15 @@ export default function SessionsPage() {
         }));
       }
 
-      toast({
-        title: "Session Added",
-        description: `Session with ${formatFullNameAndDogName(sessionData.clientName || '', sessionData.dogName)} on ${format(data.date, 'PPP')} at ${data.time} has been scheduled.`,
-      });
       setIsAddSessionSheetOpen(false);
       resetAddSessionForm();
     } catch (err) {
       console.error("Error adding session to Firestore:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to add session.";
-      toast({ title: "Error Adding Session", description: errorMessage, variant: "destructive" });
-    } finally {
-      setIsSubmittingSheet(false);
-    }
-  };
-
-  const handleUpdateSession: SubmitHandler<SessionFormValues> = async (data) => {
-    if (!sessionToEdit) return;
-    setIsSubmittingSheet(true);
-
-    const sessionDataToUpdate: Partial<Omit<Session, 'id' | 'createdAt' | 'clientName' | 'dogName'>> = {
-      clientId: data.clientId,
-      date: format(data.date, 'yyyy-MM-dd'),
-      time: data.time,
-      sessionType: data.sessionType,
-      amount: data.amount,
-    };
-
-    const selectedClient = clients.find(c => c.id === data.clientId);
-
-    try {
-      await updateSession(sessionToEdit.id, sessionDataToUpdate);
-      setSessions(prevSessions =>
-        prevSessions.map(s =>
-          s.id === sessionToEdit.id
-            ? {
-                ...s,
-                ...sessionDataToUpdate,
-                clientName: selectedClient ? `${selectedClient.ownerFirstName} ${selectedClient.ownerLastName}` : s.clientName,
-                dogName: selectedClient ? selectedClient.dogName : s.dogName,
-              }
-            : s
-        ).sort((a, b) => {
-             const dateA = parseISO(a.date);
-             const dateB = parseISO(b.date);
-             if (!isValid(dateA) && !isValid(dateB)) return 0;
-             if (!isValid(dateA)) return 1;
-             if (!isValid(dateB)) return -1;
-             const dateTimeA = new Date(`${format(dateA, 'yyyy-MM-dd')}T${a.time || '00:00'}:00`);
-             const dateTimeB = new Date(`${format(dateB, 'yyyy-MM-dd')}T${b.time || '00:00'}:00`);
-             return dateTimeB.getTime() - dateTimeA.getTime();
-        })
-      );
-      toast({ title: "Session Updated", description: `Session on ${format(data.date, 'PPP')} at ${data.time} updated.` });
       setIsEditSessionSheetOpen(false);
       setSessionToEdit(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to update session.";
-      toast({ title: "Error Updating Session", description: errorMessage, variant: "destructive" });
-    } finally {
-      setIsSubmittingSheet(false);
-    }
-  };
-
-
-  const filteredSessions = useMemo(() => {
-    if (!searchTerm.trim()) return sessions;
-
-    const searchLower = searchTerm.toLowerCase();
-    return sessions.filter(session => {
-      const clientName = session.clientName?.toLowerCase() || '';
-      const dogName = session.dogName?.toLowerCase() || '';
-      const sessionType = session.sessionType?.toLowerCase() || '';
-      const date = session.date?.toLowerCase() || '';
-      const time = session.time?.toLowerCase() || '';
-
-      return clientName.includes(searchLower) ||
-             dogName.includes(searchLower) ||
-             sessionType.includes(searchLower) ||
-             date.includes(searchLower) ||
-             time.includes(searchLower);
-    });
   }, [sessions, searchTerm]);
 
   const groupSessionsByMonth = (sessionsToGroup: Session[]): GroupedSessions => {
@@ -500,10 +394,6 @@ export default function SessionsPage() {
     try {
       await deleteSession(sessionToDelete.id);
       setSessions(prevSessions => prevSessions.filter(s => s.id !== sessionToDelete.id));
-      toast({
-        title: "Session Deleted",
-        description: `Session with ${formatFullNameAndDogName(sessionToDelete.clientName || '', sessionToDelete.dogName)} on ${isValid(parseISO(sessionToDelete.date)) ? format(parseISO(sessionToDelete.date), 'PPP') : ''} has been deleted.`,
-      });
       if (selectedSessionForSheet && selectedSessionForSheet.id === sessionToDelete.id) {
         setSelectedSessionForSheet(null);
         setIsSessionSheetOpen(false);
@@ -511,27 +401,6 @@ export default function SessionsPage() {
     } catch (err) {
       console.error("Error deleting session from Firestore:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to delete session.";
-      toast({ title: "Error Deleting Session", description: errorMessage, variant: "destructive" });
-    } finally {
-      setIsSessionDeleteDialogOpen(false);
-      setSessionToDelete(null);
-      setIsSubmittingSheet(false);
-    }
-  };
-
-
-  const groupedSessions = groupSessionsByMonth(filteredSessions);
-  const sortedMonthKeys = Object.keys(groupedSessions).sort((a, b) => {
-    try {
-      const dateA = parse(a, 'MMMM yyyy', new Date());
-      const dateB = parse(b, 'MMMM yyyy', new Date());
-      if (!isValid(dateA) || !isValid(dateB)) return 0;
-      return dateB.getTime() - dateA.getTime();
-    } catch (e) {
-      console.error("Error parsing month keys for sorting:", a, b, e);
-      return 0;
-    }
-  });
 
   return (
     <div className="flex flex-col gap-6">

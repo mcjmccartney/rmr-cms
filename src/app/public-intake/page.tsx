@@ -13,7 +13,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
 import { addClientAndBriefToFirestore, type BehaviouralBriefFormValues } from '@/lib/dataService';
 import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -48,7 +47,6 @@ const sessionTypeOptions = [
 export default function BehaviouralBriefPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentSubmissionDate, setCurrentSubmissionDate] = useState(''); // Initialized to empty string
-  const { toast } = useToast();
 
   useEffect(() => {
     // Set initial date on client-side to avoid hydration mismatch
@@ -94,10 +92,6 @@ export default function BehaviouralBriefPage() {
       };
 
       await addClientAndBriefToFirestore(submissionDataWithPreciseTimestamp);
-      toast({
-        title: "Submission Successful!",
-        description: "Thank you for submitting your Behavioural Brief. We will be in touch shortly.",
-      });
 
       // Reset form and update currentSubmissionDate for the next potential form use
       const newDateForNextForm = format(new Date(), "yyyy-MM-dd HH:mm:ss");
@@ -109,11 +103,6 @@ export default function BehaviouralBriefPage() {
     } catch (err) {
       console.error("Error submitting behavioural brief to Firestore:", err);
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-      toast({
-        title: "Submission Error",
-        description: `There was a problem submitting your form: ${errorMessage}. Please try again.`,
-        variant: "destructive",
-      });
     } finally {
       setIsSubmitting(false);
     }

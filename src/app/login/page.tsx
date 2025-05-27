@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context'; // Import useAuth
 
@@ -24,7 +23,6 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, loading, signIn } = useAuth(); // Get user, loading state, and signIn function
 
@@ -58,10 +56,6 @@ export default function LoginPage() {
       }
 
       if (user) {
-        toast({
-          title: "Login Successful",
-          description: "Welcome back!",
-        });
         router.push('/'); // Redirect to dashboard or desired page after successful login
       }
     } catch (error) {
@@ -74,11 +68,6 @@ export default function LoginPage() {
           errorMessage = "Use any email with password 'password123' for demo.";
         }
       }
-      toast({
-        title: "Login Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
     } finally {
       setIsSubmitting(false);
     }
