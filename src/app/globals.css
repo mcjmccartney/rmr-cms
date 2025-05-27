@@ -49,13 +49,13 @@
     /* Sidebar specific theme */
     --sidebar-background: 11 64% 35%; /* Primary color #913520 */
     --sidebar-foreground: 0 0% 98%;    /* White/Very Light Gray for text on new primary */
-    
+
     --sidebar-primary: 27 65% 69%; /* Soft peach #E5A67A for active items (using original accent) */
     --sidebar-primary-foreground: 0 0% 10%; /* Dark Gray/Black for text on peach */
-    
+
     --sidebar-accent: 10 49% 41%;     /* #9c4a38 New hover color */
     --sidebar-accent-foreground: 0 0% 98%; /* White/Very Light Gray for text on hover */
-    
+
     --sidebar-border: 11 64% 25%;     /* Slightly Darker #913520 for borders */
     --sidebar-ring: 27 65% 69%; /* Soft peach #E5A67A for focus rings (using original accent) */
   }
@@ -98,13 +98,13 @@
     /* Sidebar specific theme for dark mode */
     --sidebar-background: 11 64% 35%; /* Primary color #913520 */
     --sidebar-foreground: 0 0% 98%;    /* White/Very Light Gray */
-    
+
     --sidebar-primary: 27 65% 69%; /* Soft peach #E5A67A */
     --sidebar-primary-foreground: 0 0% 10%; /* Dark Gray/Black */
-    
+
     --sidebar-accent: 10 49% 41%;     /* #9c4a38 New hover color */
     --sidebar-accent-foreground: 0 0% 98%; /* White/Very Light Gray */
-    
+
     --sidebar-border: 11 64% 25%;     /* Slightly Darker #913520 */
     --sidebar-ring: 27 65% 69%; /* Soft peach #E5A67A */
   }
@@ -115,4 +115,24 @@
     @apply border-border;
   }
   /* body already styled above */
+}
+
+@layer components {
+  /* Custom date picker hover override */
+  .rdp-day:hover:not(.rdp-day_selected):not(.rdp-day_disabled) {
+    background-color: #92351f !important;
+    color: white !important;
+  }
+
+  /* Ensure selected dates maintain their styling */
+  .rdp-day_selected {
+    background-color: #92351f !important;
+    color: white !important;
+  }
+
+  /* Override any button hover states in date picker */
+  .rdp button:hover:not(.rdp-day_selected):not(.rdp-day_disabled) {
+    background-color: #92351f !important;
+    color: white !important;
+  }
 }

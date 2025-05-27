@@ -2,7 +2,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { addClient } from '@/lib/dataService';
+import { addClientToFirestore } from '@/lib/dataService';
 import type { Client } from '@/lib/types';
 
 // Define the expected schema for the incoming client data
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   // Options include:
   // 1. A secret key/token passed in the headers or query parameters.
   // 2. IP whitelisting (if Google Apps Script has static IPs, which is unlikely for UrlFetchApp).
-  // 3. App security check if the request is made from a trusted environment.
+  // 3. Firebase App Check if the request is made from a trusted environment.
   // For now, this endpoint is open.
   // Example secret key check:
   // const secret = request.headers.get('X-Squarespace-Secret');
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
 
   try {
-    const newClient = await addClient(clientDataForFirestore);
+    const newClient = await addClientToFirestore(clientDataForFirestore);
     return NextResponse.json({ success: true, clientId: newClient.id, message: 'Client imported successfully' });
   } catch (error) {
     console.error('Error importing client:', error);

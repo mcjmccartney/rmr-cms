@@ -13,8 +13,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
+
 import { addClientAndBehaviourQuestionnaireToFirestore, type BehaviourQuestionnaireFormValues } from '@/lib/dataService';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -111,6 +112,7 @@ const sociabilityOptions = ["Sociable", "Nervous", "Reactive", "Disinterested"];
 export default function BehaviourQuestionnairePage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [currentSubmissionDate, setCurrentSubmissionDate] = useState('');
+
   // Removed searchParams and existingClientId as linking is now email-based
 
   useEffect(() => {
@@ -196,15 +198,13 @@ export default function BehaviourQuestionnairePage() {
         submissionDate: submissionTimestamp,
       };
 
-      // existingClientId is no longer passed
       await addClientAndBehaviourQuestionnaireToFirestore(submissionData);
 
       const newDateForNextForm = format(new Date(), "yyyy-MM-dd HH:mm:ss");
       setCurrentSubmissionDate(newDateForNextForm);
       reset({ ...memoizedDefaultValues, submissionDate: newDateForNextForm });
     } catch (err) {
-      console.error("Error submitting behaviour questionnaire to Firestore:", err);
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+      console.error("Error submitting behaviour questionnaire:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -538,14 +538,15 @@ export default function BehaviourQuestionnairePage() {
 
             <input type="hidden" {...register("submissionDate")} />
 
-            <div className="pt-6">
+            <div className="pt-6 flex justify-center">
               <Button
                 type="submit"
-                className="w-full h-12 text-base bg-[#4f6749] text-[#ebeadf] hover:bg-[#4f6749]/90"
+                size="lg"
+                className="bg-[#4f6749] text-[#ebeadf] hover:bg-[#4f6749]/90"
                 disabled={isSubmitting}
+                tooltip="Submit Questionnaire"
               >
-                {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-                Submit Questionnaire
+                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
               </Button>
             </div>
           </form>

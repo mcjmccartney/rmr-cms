@@ -4,19 +4,19 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { Session, Client, BehaviouralBrief, BehaviourQuestionnaire } from '@/lib/types';
 import {
-  getSessions,
-  addSession,
-  deleteSession,
+  getSessionsFromFirestore,
+  addSessionToFirestore,
+  deleteSessionFromFirestore,
   getClients,
   getClientById,
-  updateSession,
-  getBehaviouralBrief,
-  getBehaviourQuestionnaire,
+  updateSessionInFirestore,
+  getBehaviouralBriefByBriefId,
+  getBehaviourQuestionnaireById,
 } from '@/lib/dataService';
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { format, parseISO, isValid, parse } from 'date-fns';
-import { Edit, Trash2, Clock, CalendarDays as CalendarIconLucide, DollarSign, MoreHorizontal, Loader2, Info, Tag as TagIcon, ChevronLeft, CalendarPlus, Search } from 'lucide-react';
+import { Edit, Trash2, Clock, CalendarDays as CalendarIconLucide, DollarSign, MoreHorizontal, Loader2, Info, Tag as TagIcon, ChevronLeft, Plus, Save, FileText, FileQuestion, X, CalendarPlus } from 'lucide-react';
 import Image from 'next/image';
 import {
   Sheet,
@@ -67,7 +67,8 @@ import {
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { cn, formatFullNameAndDogName, formatTimeWithoutSeconds } from '@/lib/utils';
+import { cn, formatFullNameAndDogName } from '@/lib/utils';
+
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -130,8 +131,6 @@ export default function SessionsPage() {
   const [clientForSelectedSession, setClientForSelectedSession] = useState<Client | null>(null);
   const [isLoadingClientForSession, setIsLoadingClientForSession] = useState<boolean>(false);
   const [sessionSheetViewMode, setSessionSheetViewMode] = useState<'sessionInfo' | 'behaviouralBrief' | 'behaviourQuestionnaire'>('sessionInfo');
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [isSearchExpanded, setIsSearchExpanded] = useState<boolean>(false);
   const [briefForSessionSheet, setBriefForSessionSheet] = useState<BehaviouralBrief | null>(null);
   const [isLoadingBriefForSessionSheet, setIsLoadingBriefForSessionSheet] = useState<boolean>(false);
   const [questionnaireForSessionSheet, setQuestionnaireForSessionSheet] = useState<BehaviourQuestionnaire | null>(null);
@@ -143,6 +142,7 @@ export default function SessionsPage() {
 
   const [isEditSessionSheetOpen, setIsEditSessionSheetOpen] = useState(false);
   const [sessionToEdit, setSessionToEdit] = useState<Session | null>(null);
+
 
 
   const addSessionForm = useForm<SessionFormValues>({
@@ -262,6 +262,8 @@ export default function SessionsPage() {
           console.error("Error fetching client for session:", error);
           setClientForSelectedSession(null);
           setIsLoadingClientForSession(false);
+
+        });
     } else {
       setClientForSelectedSession(null);
     }
@@ -272,11 +274,27 @@ export default function SessionsPage() {
     if (!clientForSelectedSession || !clientForSelectedSession.behaviouralBriefId) return;
     setIsLoadingBriefForSessionSheet(true);
     try {
-      const brief = await getBehaviouralBrief(clientForSelectedSession.behaviouralBriefId);
+      const brief = await getBehaviouralBriefByBriefId(clientForSelectedSession.behaviouralBriefId);
       setBriefForSessionSheet(brief);
       setSessionSheetViewMode('behaviouralBrief');
     } catch (error) {
       console.error("Error fetching brief:", error);
+
+    } finally {
+      setIsLoadingBriefForSessionSheet(false);
+    }
+  };
+
+  const handleViewQuestionnaireForSession = async () => {
+    if (!clientForSelectedSession || !clientForSelectedSession.behaviourQuestionnaireId) return;
+    setIsLoadingQuestionnaireForSessionSheet(true);
+    try {
+      const questionnaire = await getBehaviourQuestionnaireById(clientForSelectedSession.behaviourQuestionnaireId);
+      setQuestionnaireForSessionSheet(questionnaire);
+      setSessionSheetViewMode('behaviourQuestionnaire');
+    } catch (error) {
+      console.error("Error fetching questionnaire:", error);
+
     } finally {
       setIsLoadingQuestionnaireForSessionSheet(false);
     }
@@ -285,15 +303,14 @@ export default function SessionsPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Supabase configuration is handled in the HTTP client
       try {
         setIsLoading(true);
         setError(null);
-        const [supabaseSessions, supabaseClients] = await Promise.all([
-          getSessions(),
+        const [mockSessions, mockClients] = await Promise.all([
+          getSessionsFromFirestore(),
           getClients()
         ]);
-        setSessions(supabaseSessions.sort((a, b) => {
+        setSessions(mockSessions.sort((a, b) => {
             const dateA = parseISO(a.date);
             const dateB = parseISO(b.date);
             if (!isValid(dateA) && !isValid(dateB)) return 0;
@@ -309,7 +326,7 @@ export default function SessionsPage() {
 
             return dateTimeB.getTime() - dateTimeA.getTime();
         }));
-        setClients(supabaseClients.sort((a, b) => {
+        setClients(mockClients.sort((a, b) => {
           const nameA = formatFullNameAndDogName(a.ownerFirstName + " " + a.ownerLastName, a.dogName).toLowerCase();
           const nameB = formatFullNameAndDogName(b.ownerFirstName + " " + b.ownerLastName, b.dogName).toLowerCase();
           if (nameA < nameB) return -1;
@@ -320,6 +337,20 @@ export default function SessionsPage() {
         console.error("Error fetching data:", err);
         const errorMessage = err instanceof Error ? err.message : "Failed to load data.";
         setError(errorMessage);
+
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleAddSessionSubmit: SubmitHandler<SessionFormValues> = async (data) => {
+    setIsSubmittingSheet(true);
+    const selectedClient = clients.find(c => c.id === data.clientId);
+    if (!selectedClient) {
+
       setIsSubmittingSheet(false);
       return;
     }
@@ -335,9 +366,8 @@ export default function SessionsPage() {
     };
 
     try {
-      const newSession = await addSession(sessionData);
-      if (newSession) {
-        setSessions(prevSessions => [...prevSessions, newSession].sort((a, b) => {
+      const newSession = await addSessionToFirestore(sessionData);
+      setSessions(prevSessions => [...prevSessions, newSession].sort((a, b) => {
         const dateA = parseISO(a.date);
         const dateB = parseISO(b.date);
         if (!isValid(dateA) && !isValid(dateB)) return 0;
@@ -350,19 +380,68 @@ export default function SessionsPage() {
         if (!isValid(dateTimeA)) return 1;
         if (!isValid(dateTimeB)) return -1;
         return dateTimeB.getTime() - dateTimeA.getTime();
-        }));
-      }
+      }));
+
 
       setIsAddSessionSheetOpen(false);
       resetAddSessionForm();
     } catch (err) {
       console.error("Error adding session to Firestore:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to add session.";
+
+    } finally {
+      setIsSubmittingSheet(false);
+    }
+  };
+
+  const handleUpdateSession: SubmitHandler<SessionFormValues> = async (data) => {
+    if (!sessionToEdit) return;
+    setIsSubmittingSheet(true);
+
+    const sessionDataToUpdate: Partial<Omit<Session, 'id' | 'createdAt' | 'clientName' | 'dogName'>> = {
+      clientId: data.clientId,
+      date: format(data.date, 'yyyy-MM-dd'),
+      time: data.time,
+      sessionType: data.sessionType,
+      amount: data.amount,
+    };
+
+    const selectedClient = clients.find(c => c.id === data.clientId);
+
+    try {
+      await updateSessionInFirestore(sessionToEdit.id, sessionDataToUpdate);
+      setSessions(prevSessions =>
+        prevSessions.map(s =>
+          s.id === sessionToEdit.id
+            ? {
+                ...s,
+                ...sessionDataToUpdate,
+                clientName: selectedClient ? `${selectedClient.ownerFirstName} ${selectedClient.ownerLastName}` : s.clientName,
+                dogName: selectedClient ? selectedClient.dogName : s.dogName,
+              }
+            : s
+        ).sort((a, b) => {
+             const dateA = parseISO(a.date);
+             const dateB = parseISO(b.date);
+             if (!isValid(dateA) && !isValid(dateB)) return 0;
+             if (!isValid(dateA)) return 1;
+             if (!isValid(dateB)) return -1;
+             const dateTimeA = new Date(`${format(dateA, 'yyyy-MM-dd')}T${a.time || '00:00'}:00`);
+             const dateTimeB = new Date(`${format(dateB, 'yyyy-MM-dd')}T${b.time || '00:00'}:00`);
+             return dateTimeB.getTime() - dateTimeA.getTime();
+        })
+      );
+
       setIsEditSessionSheetOpen(false);
       setSessionToEdit(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to update session.";
-  }, [sessions, searchTerm]);
+
+    } finally {
+      setIsSubmittingSheet(false);
+    }
+  };
+
 
   const groupSessionsByMonth = (sessionsToGroup: Session[]): GroupedSessions => {
     return sessionsToGroup.reduce((acc, session) => {
@@ -392,8 +471,9 @@ export default function SessionsPage() {
     if (!sessionToDelete) return;
     setIsSubmittingSheet(true);
     try {
-      await deleteSession(sessionToDelete.id);
+      await deleteSessionFromFirestore(sessionToDelete.id);
       setSessions(prevSessions => prevSessions.filter(s => s.id !== sessionToDelete.id));
+
       if (selectedSessionForSheet && selectedSessionForSheet.id === sessionToDelete.id) {
         setSelectedSessionForSheet(null);
         setIsSessionSheetOpen(false);
@@ -402,34 +482,35 @@ export default function SessionsPage() {
       console.error("Error deleting session from Firestore:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to delete session.";
 
+    } finally {
+      setIsSessionDeleteDialogOpen(false);
+      setSessionToDelete(null);
+      setIsSubmittingSheet(false);
+    }
+  };
+
+
+  const groupedSessions = groupSessionsByMonth(sessions);
+  const sortedMonthKeys = Object.keys(groupedSessions).sort((a, b) => {
+    try {
+      const dateA = parse(a, 'MMMM yyyy', new Date());
+      const dateB = parse(b, 'MMMM yyyy', new Date());
+      if (!isValid(dateA) || !isValid(dateB)) return 0;
+      return dateB.getTime() - dateA.getTime();
+    } catch (e) {
+      console.error("Error parsing month keys for sorting:", a, b, e);
+      return 0;
+    }
+  });
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Sessions</h1>
-          <div className="flex items-center gap-2">
-            {/* Desktop search - hidden on mobile */}
-            <Input
-              type="search"
-              placeholder="Search sessions..."
-              className="hidden sm:block h-9 focus-visible:ring-0 focus-visible:ring-offset-0 w-full max-w-xs sm:max-w-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {/* Mobile search button - visible only on mobile */}
-            <Button
-              variant="outline"
-              size="icon"
-              className="sm:hidden h-9 w-9"
-              onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-            <Sheet open={isAddSessionSheetOpen} onOpenChange={setIsAddSessionSheetOpen}>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Sessions</h1>
+        <Sheet open={isAddSessionSheetOpen} onOpenChange={setIsAddSessionSheetOpen}>
           <SheetTrigger asChild>
-            <Button className="sm:px-3">
+            <Button tooltip="Add New Session">
               <CalendarPlus className="h-4 w-4" />
-              <span className="hidden sm:inline ml-2">New Session</span>
             </Button>
           </SheetTrigger>
           <SheetContent className="flex flex-col h-full sm:max-w-md bg-card">
@@ -483,7 +564,7 @@ export default function SessionsPage() {
                             classNames={{
                                 day_selected: "bg-[#92351f] text-white focus:bg-[#92351f] focus:text-white !rounded-md",
                                 day_today: "ring-2 ring-custom-ring-color rounded-md ring-offset-background ring-offset-1 text-custom-ring-color font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none",
-                                day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-[#92351f] hover:text-white focus-visible:outline-none !rounded-md")
+                                day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 focus-visible:outline-none !rounded-md inline-flex items-center justify-center whitespace-nowrap text-sm transition-colors disabled:pointer-events-none disabled:opacity-50"
                             }}
                           />
                         )}
@@ -591,28 +672,18 @@ export default function SessionsPage() {
               </div>
             </ScrollArea>
             <SheetFooter className="border-t pt-4">
-              <Button type="submit" form="addSessionFormInSheetSessions" className="w-full" disabled={isSubmittingSheet}>
-                {isSubmittingSheet ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CalendarPlus className="mr-2 h-4 w-4" />}
+              <Button
+                type="submit"
+                form="addSessionFormInSheetSessions"
+                className="w-full"
+                disabled={isSubmittingSheet}
+              >
+                {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Session
               </Button>
             </SheetFooter>
           </SheetContent>
         </Sheet>
-          </div>
-        </div>
-        {/* Mobile search bar - appears below buttons when expanded */}
-        {isSearchExpanded && (
-          <div className="sm:hidden">
-            <Input
-              type="search"
-              placeholder="Search sessions..."
-              className="h-9 focus-visible:ring-0 focus-visible:ring-offset-0 w-full"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              autoFocus
-            />
-          </div>
-        )}
       </div>
 
       {isLoading && (
@@ -624,21 +695,21 @@ export default function SessionsPage() {
       {!isLoading && error && (
         <div className="text-destructive text-center py-10">
           <p>Error loading sessions: {error}</p>
-          <p>Please ensure you are online and try again.</p>
+          <p>Please ensure Firebase is configured correctly and you are online.</p>
         </div>
       )}
       {!isLoading && !error && sortedMonthKeys.length === 0 && (
         <p className="text-muted-foreground text-center py-10">No sessions scheduled yet. Add a new session to get started.</p>
       )}
       {!isLoading && !error && sortedMonthKeys.length > 0 && (
-        <Accordion type="multiple" className="w-full space-y-0" defaultValue={sortedMonthKeys.length > 0 ? [sortedMonthKeys[0]] : []}>
+        <Accordion type="multiple" className="w-full space-y-2" defaultValue={sortedMonthKeys.length > 0 ? [sortedMonthKeys[0]] : []}>
           {sortedMonthKeys.map((monthYear) => (
-            <AccordionItem value={monthYear} key={monthYear} className="bg-card shadow-sm rounded-md mb-2">
+            <AccordionItem value={monthYear} key={monthYear} className="bg-card shadow-sm rounded-md border">
               <AccordionTrigger className="text-lg hover:no-underline px-4 py-3 font-semibold">
                 {monthYear} ({groupedSessions[monthYear].length} sessions)
               </AccordionTrigger>
               <AccordionContent className="px-0">
-                <div className="space-y-0">
+                <ul className="space-y-0 pt-0 pb-0">
                   {groupedSessions[monthYear]
                     .sort((a, b) => {
                         const dateA = parseISO(a.date);
@@ -656,13 +727,12 @@ export default function SessionsPage() {
                     .map(session => {
                       const displayName = formatFullNameAndDogName(session.clientName, session.dogName);
                       return (
-                      <div
+                      <li
                         key={session.id}
-                        className="py-3 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSessionClick(session)}
+                        className="bg-card border-b last:border-b-0"
                       >
-                        <div className="flex justify-between items-center px-4">
-                           <div className="flex items-center gap-3 flex-grow">
+                        <div className="flex justify-between items-center py-2 px-4">
+                           <div className="flex items-center gap-3 flex-grow cursor-pointer" onClick={() => handleSessionClick(session)}>
                              <Image
                                 src="https://iili.io/34300ox.md.jpg"
                                 alt="RMR Logo"
@@ -682,7 +752,7 @@ export default function SessionsPage() {
                                     {session.time && <span className="sm:inline">•</span>}
                                     {session.time && (
                                         <span className="flex items-center">
-                                          {formatTimeWithoutSeconds(session.time)}
+                                          {session.time}
                                         </span>
                                     )}
                                     {session.amount !== undefined && <span className="sm:inline">•</span>}
@@ -732,10 +802,10 @@ export default function SessionsPage() {
                             </DropdownMenu>
                           </div>
                         </div>
-                      </div>
+                      </li>
                     );
                     })}
-                </div>
+                </ul>
               </AccordionContent>
             </AccordionItem>
           ))}
@@ -754,7 +824,7 @@ export default function SessionsPage() {
                     <>
                         <DetailRow label="Client:" value={formatFullNameAndDogName(selectedSessionForSheet.clientName, selectedSessionForSheet.dogName)} />
                         <DetailRow label="Date:" value={isValid(parseISO(selectedSessionForSheet.date)) ? format(parseISO(selectedSessionForSheet.date), 'PPP') : 'Invalid Date'} />
-                        <DetailRow label="Time:" value={formatTimeWithoutSeconds(selectedSessionForSheet.time)} />
+                        <DetailRow label="Time:" value={selectedSessionForSheet.time} />
                         <DetailRow label="Session Type:" value={selectedSessionForSheet.sessionType} />
                         {selectedSessionForSheet.amount !== undefined && <DetailRow label="Quote:" value={`£${selectedSessionForSheet.amount.toFixed(2)}`} />}
 
@@ -763,13 +833,25 @@ export default function SessionsPage() {
                         {clientForSelectedSession && (
                             <div className="mt-6 space-y-2">
                             {clientForSelectedSession.behaviouralBriefId && (
-                                <Button onClick={handleViewBriefForSession} className="w-full" variant="outline" disabled={isLoadingBriefForSessionSheet}>
-                                {isLoadingBriefForSessionSheet ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Info className="mr-2 h-4 w-4" />} View Behavioural Brief
+                                <Button
+                                  onClick={handleViewBriefForSession}
+                                  className="w-full"
+                                  variant="outline"
+                                  disabled={isLoadingBriefForSessionSheet}
+                                >
+                                  {isLoadingBriefForSessionSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                  View Behavioural Brief
                                 </Button>
                             )}
                             {clientForSelectedSession.behaviourQuestionnaireId && (
-                                <Button onClick={handleViewQuestionnaireForSession} className="w-full" variant="outline" disabled={isLoadingQuestionnaireForSessionSheet}>
-                                {isLoadingQuestionnaireForSessionSheet ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <TagIcon className="mr-2 h-4 w-4" />} View Behaviour Questionnaire
+                                <Button
+                                  onClick={handleViewQuestionnaireForSession}
+                                  className="w-full"
+                                  variant="outline"
+                                  disabled={isLoadingQuestionnaireForSessionSheet}
+                                >
+                                  {isLoadingQuestionnaireForSessionSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                  View Behaviour Questionnaire
                                 </Button>
                             )}
                             </div>
@@ -778,12 +860,8 @@ export default function SessionsPage() {
                 )}
                 {sessionSheetViewMode === 'behaviouralBrief' && briefForSessionSheet && (
                 <div>
-                    <div className="flex justify-between items-center mb-3">
-                        <Button variant="ghost" size="sm" onClick={() => setSessionSheetViewMode('sessionInfo')} className="px-2">
-                            <ChevronLeft className="h-4 w-4 mr-1" /> Back to Session Info
-                        </Button>
+                    <div className="flex justify-center items-center mb-3">
                         <h4 className="text-lg font-semibold">Behavioural Brief</h4>
-                        <div className="w-36"></div> {/* Spacer */}
                     </div>
                     <Separator className="mb-3" />
                     <DetailRow label="Dog Name:" value={briefForSessionSheet.dogName} />
@@ -799,12 +877,8 @@ export default function SessionsPage() {
 
                 {sessionSheetViewMode === 'behaviourQuestionnaire' && questionnaireForSessionSheet && (
                 <div>
-                    <div className="flex justify-between items-center mb-3">
-                         <Button variant="ghost" size="sm" onClick={() => setSessionSheetViewMode('sessionInfo')} className="px-2">
-                            <ChevronLeft className="h-4 w-4 mr-1" /> Back to Session Info
-                        </Button>
+                    <div className="flex justify-center items-center mb-3">
                         <h4 className="text-lg font-semibold">Behaviour Questionnaire</h4>
-                        <div className="w-36"></div> {/* Spacer */}
                     </div>
                     <Separator className="mb-3" />
                     <DetailRow label="Dog Name:" value={questionnaireForSessionSheet.dogName} />
@@ -821,32 +895,41 @@ export default function SessionsPage() {
 
               </div>
             </ScrollArea>
-            <SheetFooter className="border-t pt-4">
-                <div className="flex w-full gap-2">
+            <SheetFooter className="border-t pt-4 flex-row gap-2">
+                {sessionSheetViewMode === 'sessionInfo' ? (
+                    <>
+                        <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                                if(selectedSessionForSheet) {
+                                    setSessionToEdit(selectedSessionForSheet);
+                                    setIsEditSessionSheetOpen(true);
+                                    setIsSessionSheetOpen(false);
+                                }
+                            }}
+                        >
+                            Edit Session
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            className="flex-1"
+                            onClick={() => selectedSessionForSheet && handleDeleteSessionRequest(selectedSessionForSheet)}
+                            disabled={isSubmittingSheet && sessionToDelete !== null && sessionToDelete.id === selectedSessionForSheet?.id}
+                        >
+                            {isSubmittingSheet && sessionToDelete?.id === selectedSessionForSheet?.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                            Delete Session
+                        </Button>
+                    </>
+                ) : (
                     <Button
                         variant="outline"
-                        className="flex-1"
-                        onClick={() => {
-                            if(selectedSessionForSheet) {
-                                setSessionToEdit(selectedSessionForSheet);
-                                setIsEditSessionSheetOpen(true);
-                                setIsSessionSheetOpen(false);
-                            }
-                        }}
-                    >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Session
+                        className="w-full"
+                        onClick={() => setSessionSheetViewMode('sessionInfo')}
+                        >
+                        Back to Session Details
                     </Button>
-                    <Button
-                        variant="destructive"
-                        className="flex-1"
-                        onClick={() => selectedSessionForSheet && handleDeleteSessionRequest(selectedSessionForSheet)}
-                        disabled={isSubmittingSheet && sessionToDelete !== null && sessionToDelete.id === selectedSessionForSheet?.id}
-                    >
-                        {isSubmittingSheet && sessionToDelete?.id === selectedSessionForSheet?.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
-                        Delete Session
-                    </Button>
-                </div>
+                )}
             </SheetFooter>
           </SheetContent>
         </Sheet>
@@ -890,7 +973,7 @@ export default function SessionsPage() {
                           classNames={{
                             day_selected: "bg-[#92351f] text-white focus:bg-[#92351f] focus:text-white !rounded-md",
                             day_today: "ring-2 ring-custom-ring-color rounded-md ring-offset-background ring-offset-1 text-custom-ring-color font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none",
-                            day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-[#92351f] hover:text-white focus-visible:outline-none !rounded-md")
+                            day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 focus-visible:outline-none !rounded-md inline-flex items-center justify-center whitespace-nowrap text-sm transition-colors disabled:pointer-events-none disabled:opacity-50"
                           }} />
                         )} />
                     </div>
@@ -976,8 +1059,14 @@ export default function SessionsPage() {
             </div>
           </ScrollArea>
           <SheetFooter className="border-t pt-4">
-            <Button type="submit" form="editSessionFormInSheetSessions" className="w-full" disabled={isSubmittingSheet}>
-              {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Changes
+            <Button
+              type="submit"
+              form="editSessionFormInSheetSessions"
+              className="w-full"
+              disabled={isSubmittingSheet}
+            >
+              {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
             </Button>
           </SheetFooter>
         </SheetContent>
