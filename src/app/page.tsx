@@ -108,17 +108,6 @@ import { cn, formatFullNameAndDogName, formatTimeWithoutSeconds } from '@/lib/ut
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar as ShadCalendar } from '@/components/ui/calendar';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 
 const internalClientFormSchema = z.object({
@@ -577,6 +566,10 @@ export default function HomePage() {
     await handleDeleteSession(sessionToDelete);
     setIsDeleteSessionDialogOpen(false);
     setSessionToDelete(null);
+  };
+
+  const formatCaption: DateFormatter = (month, options) => {
+    return format(month, 'MMMM yyyy', { locale: options?.locale });
   };
 
   const CustomDayContent = (props: DayProps) => {
