@@ -44,15 +44,57 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  getClients,
-  getSessions as getSessionsFromFirestore,
-  addClient as fbAddClient,
-  updateClient as updateClientInFirestore,
-  deleteClient as deleteClientFromFirestore,
-  getBehaviouralBrief as getBehaviouralBriefByBriefId,
-  getBehaviourQuestionnaire as getBehaviourQuestionnaireById,
-} from '@/lib/supabaseService';
+// API functions
+const getClients = async () => {
+  const response = await fetch('/api/clients');
+  if (!response.ok) throw new Error('Failed to fetch clients');
+  return response.json().then(data => data.data);
+};
+
+const getSessions = async () => {
+  const response = await fetch('/api/sessions');
+  if (!response.ok) throw new Error('Failed to fetch sessions');
+  return response.json().then(data => data.data);
+};
+
+const addClient = async (client: any) => {
+  const response = await fetch('/api/clients', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(client),
+  });
+  if (!response.ok) throw new Error('Failed to add client');
+  return response.json().then(data => data.data);
+};
+
+const updateClient = async (id: string, updates: any) => {
+  const response = await fetch(`/api/clients?id=${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  if (!response.ok) throw new Error('Failed to update client');
+  return response.json();
+};
+
+const deleteClient = async (id: string) => {
+  const response = await fetch(`/api/clients?id=${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to delete client');
+  return response.json();
+};
+
+// Placeholder functions for behavioural briefs and questionnaires
+const getBehaviouralBrief = async (briefId: string) => {
+  console.warn('getBehaviouralBrief not yet implemented');
+  return null;
+};
+
+const getBehaviourQuestionnaire = async (questionnaireId: string) => {
+  console.warn('getBehaviourQuestionnaire not yet implemented');
+  return null;
+};
 
 
 const internalClientFormSchema = z.object({
@@ -150,18 +192,18 @@ export default function ClientsPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const [mockClients, mockSessions] = await Promise.all([
+      const [clientsData, sessionsData] = await Promise.all([
         getClients(),
-        getSessionsFromFirestore()
+        getSessions()
       ]);
-      setClients(mockClients.sort((a, b) => {
+      setClients(clientsData.sort((a, b) => {
           const nameA = formatFullNameAndDogName(`${a.ownerFirstName} ${a.ownerLastName}`, a.dogName).toLowerCase();
           const nameB = formatFullNameAndDogName(`${b.ownerFirstName} ${b.ownerLastName}`, b.dogName).toLowerCase();
           if (nameA < nameB) return -1;
           if (nameA > nameB) return 1;
           return 0;
         }));
-      setAllSessions(mockSessions);
+      setAllSessions(sessionsData);
     } catch (err) {
       console.error("Error fetching data:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to load data.";
@@ -227,7 +269,7 @@ export default function ClientsPage() {
         isActive: data.isActive === undefined ? true : data.isActive,
         submissionDate: data.submissionDate || format(new Date(), "yyyy-MM-dd HH:mm:ss"),
       };
-      const newClient = await fbAddClient(clientDataForFirestore);
+      const newClient = await addClient(clientDataForFirestore);
       setClients(prevClients => [...prevClients, newClient].sort((a, b) => {
           const nameA = formatFullNameAndDogName(`${a.ownerFirstName} ${a.ownerLastName}`, a.dogName).toLowerCase();
           const nameB = formatFullNameAndDogName(`${b.ownerFirstName} ${b.ownerLastName}`, b.dogName).toLowerCase();
@@ -262,7 +304,7 @@ export default function ClientsPage() {
             isMember: data.isMember || false,
             isActive: data.isActive === undefined ? true : data.isActive,
         };
-        await updateClientInFirestore(clientToEdit.id, updateData);
+        await updateClient(clientToEdit.id, updateData);
         setClients(prevClients => prevClients.map(c => c.id === clientToEdit.id ? { ...c, ...updateData, contactNumber: formatPhoneNumber(data.contactNumber) || data.contactNumber } : c)
         .sort((a, b) => {
           const nameA = formatFullNameAndDogName(`${a.ownerFirstName} ${a.ownerLastName}`, a.dogName).toLowerCase();
@@ -293,7 +335,7 @@ export default function ClientsPage() {
     if (!clientToDelete) return;
     setIsProcessingDelete(true);
     try {
-      await deleteClientFromFirestore(clientToDelete.id);
+      await deleteClient(clientToDelete.id);
       setClients(prev => prev.filter(c => c.id !== clientToDelete.id));
 
       if (clientForViewSheet && clientForViewSheet.id === clientToDelete.id) {
@@ -325,7 +367,7 @@ export default function ClientsPage() {
     if (!clientForViewSheet || !clientForViewSheet.behaviouralBriefId) return;
     setIsLoadingBriefForSheet(true);
     try {
-      const brief = await getBehaviouralBriefByBriefId(clientForViewSheet.behaviouralBriefId);
+      const brief = await getBehaviouralBrief(clientForViewSheet.behaviouralBriefId);
       setBriefForSheet(brief);
       setSheetViewMode('behaviouralBrief');
     } catch (error) {
@@ -340,7 +382,7 @@ export default function ClientsPage() {
     if (!clientForViewSheet || !clientForViewSheet.behaviourQuestionnaireId) return;
     setIsLoadingQuestionnaireForSheet(true);
     try {
-      const questionnaire = await getBehaviourQuestionnaireById(clientForViewSheet.behaviourQuestionnaireId);
+      const questionnaire = await getBehaviourQuestionnaire(clientForViewSheet.behaviourQuestionnaireId);
       setQuestionnaireForSheet(questionnaire);
       setSheetViewMode('behaviourQuestionnaire');
     } catch (error) {
