@@ -103,7 +103,7 @@ import {
   updateClient,
   getBehaviouralBrief,
   getBehaviourQuestionnaire,
-} from '@/lib/dataService';
+} from '@/lib/supabaseService';
 import { cn, formatFullNameAndDogName, formatTimeWithoutSeconds } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar as ShadCalendar } from '@/components/ui/calendar';
@@ -379,7 +379,7 @@ export default function HomePage() {
           console.error("Error fetching client for session:", error);
           setClientForSelectedSession(null);
           setIsLoadingClientForSession(false);
-    } else {
+        });    } else {
       setClientForSelectedSession(null);
     }
   }, [isSessionSheetOpen, selectedSessionForSheet]);

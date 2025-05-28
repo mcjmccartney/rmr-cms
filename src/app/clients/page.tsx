@@ -6,61 +6,6 @@ import type { Client, Session, BehaviouralBrief, BehaviourQuestionnaire, Address
 import { Button } from '@/components/ui/button';
 import { Loader2, Edit, Trash2, Info, FileQuestion, ArrowLeft, SquareCheck, CalendarDays as CalendarIconLucide, Filter, Check, UserPlus, Save, Eye, FileText, X } from 'lucide-react';
 import Image from 'next/image';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-  SheetTrigger,
-  SheetClose
-} from "@/components/ui/sheet";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-
-import {
-  getClients,
-  addClientToFirestore as fbAddClient,
-  deleteClientFromFirestore,
-  getBehaviouralBriefByBriefId,
-  getBehaviourQuestionnaireById,
-  updateClientInFirestore,
-  getSessionsFromFirestore,
-} from '@/lib/dataService';
 import { format, parseISO, isValid } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn, formatFullNameAndDogName, formatPhoneNumber } from '@/lib/utils';

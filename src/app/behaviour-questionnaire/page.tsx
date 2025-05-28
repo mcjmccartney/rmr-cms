@@ -14,8 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 
-import { addClientAndBehaviourQuestionnaireToFirestore, type BehaviourQuestionnaireFormValues } from '@/lib/dataService';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';

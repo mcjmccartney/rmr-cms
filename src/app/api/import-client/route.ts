@@ -2,7 +2,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { addClientToFirestore } from '@/lib/dataService';
+import { addClient } from '@/lib/supabaseService';
 import type { Client } from '@/lib/types';
 
 // Define the expected schema for the incoming client data
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
 
   try {
-    const newClient = await addClientToFirestore(clientDataForFirestore);
+    const newClient = await addClient(clientDataForFirestore);
     return NextResponse.json({ success: true, clientId: newClient.id, message: 'Client imported successfully' });
   } catch (error) {
     console.error('Error importing client:', error);

@@ -7,7 +7,6 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Settings, LogOut, Loader2, Menu as MenuIcon, UserPlus, CalendarPlus, Search as SearchIcon, X as XIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Fab } from '@/components/ui/fab';

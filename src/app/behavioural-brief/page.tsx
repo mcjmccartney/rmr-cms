@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 
-import { addClientAndBriefToFirestore, type BehaviouralBriefFormValues } from '@/lib/dataService';
 import { Loader2, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';

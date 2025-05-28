@@ -131,7 +131,7 @@ export const addClientToFirestore = async (
   if (!isSupabaseConfigured) {
     // Fallback to mock implementation
     await new Promise(resolve => setTimeout(resolve, 200));
-    
+
     const newClient: Client = {
       ...clientData,
       id: 'mock-client-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
@@ -143,14 +143,14 @@ export const addClientToFirestore = async (
       lastSession: 'N/A',
       nextSession: 'Not Scheduled',
     };
-    
+
     return newClient;
   }
 
   try {
     const supabase = getSupabaseClient();
     const insertData = clientToDbInsert(clientData as any);
-    
+
     const { data, error } = await supabase
       .from('clients')
       .insert(insertData)
@@ -182,10 +182,10 @@ export const updateClientInFirestore = async (
 
   try {
     const supabase = getSupabaseClient();
-    
+
     // Convert client data to database format
     const updateData: Database['public']['Tables']['clients']['Update'] = {};
-    
+
     if (clientData.ownerFirstName !== undefined) updateData.owner_first_name = clientData.ownerFirstName;
     if (clientData.ownerLastName !== undefined) updateData.owner_last_name = clientData.ownerLastName;
     if (clientData.contactEmail !== undefined) updateData.contact_email = clientData.contactEmail;
@@ -223,7 +223,7 @@ export const deleteClientFromFirestore = async (clientId: string): Promise<void>
 
   try {
     const supabase = getSupabaseClient();
-    
+
     const { error } = await supabase
       .from('clients')
       .delete()
@@ -274,7 +274,7 @@ export const addSessionToFirestore = async (
 
   try {
     const supabase = getSupabaseClient();
-    
+
     const insertData: Database['public']['Tables']['sessions']['Insert'] = {
       client_id: sessionData.clientId,
       client_name: sessionData.clientName,
@@ -313,9 +313,9 @@ export const updateSessionInFirestore = async (
 
   try {
     const supabase = getSupabaseClient();
-    
+
     const updateData: Database['public']['Tables']['sessions']['Update'] = {};
-    
+
     if (sessionData.clientId !== undefined) updateData.client_id = sessionData.clientId;
     if (sessionData.date !== undefined) updateData.date = sessionData.date;
     if (sessionData.time !== undefined) updateData.time = sessionData.time;
@@ -344,7 +344,7 @@ export const deleteSessionFromFirestore = async (sessionId: string): Promise<voi
 
   try {
     const supabase = getSupabaseClient();
-    
+
     const { error } = await supabase
       .from('sessions')
       .delete()
@@ -373,3 +373,14 @@ export const getBehaviourQuestionnaireById = async (questionnaireId: string): Pr
 
 // Export type for compatibility
 export type EditableClientData = Partial<Omit<Client, 'id' | 'createdAt'>>;
+
+// Function aliases for compatibility with existing imports
+export const addClient = addClientToFirestore;
+export const updateClient = updateClientInFirestore;
+export const deleteClient = deleteClientFromFirestore;
+export const getSessions = getSessionsFromFirestore;
+export const addSession = addSessionToFirestore;
+export const updateSession = updateSessionInFirestore;
+export const deleteSession = deleteSessionFromFirestore;
+export const getBehaviouralBrief = getBehaviouralBriefByBriefId;
+export const getBehaviourQuestionnaire = getBehaviourQuestionnaireById;

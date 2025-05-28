@@ -7,8 +7,6 @@ import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/auth-context';
-import { signOutUser } from '@/lib/dataService';
 import { useToast } from "@/hooks/use-toast";
 
 interface FabProps extends ButtonProps {
