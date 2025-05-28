@@ -23,19 +23,45 @@ class ServerSupabaseClient {
   }
 
   async getSessions() {
-    console.log('🔍 Server: Fetching sessions from Supabase...');
+    console.log('🔍 Server: Fetching sessions from Supabase... [NEW VERSION]');
     try {
-      const response = await fetch(`${this.baseUrl}/sessions?select=*`, {
+      // First try to get sessions with join
+      let response = await fetch(`${this.baseUrl}/sessions?select=*,clients!sessions_client_id_fkey(owner_first_name,owner_last_name,dog_name)&order=date.desc`, {
         method: 'GET',
         headers: this.getHeaders(),
       });
 
       if (!response.ok) {
+        console.log('🔄 Join failed, trying simple select...');
+        // Fallback to simple select if join fails
+        response = await fetch(`${this.baseUrl}/sessions?select=*&order=date.desc`, {
+          method: 'GET',
+          headers: this.getHeaders(),
+        });
+      }
+
+      if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const rawData = await response.json();
+      console.log('🔍 Raw session data:', JSON.stringify(rawData[0], null, 2));
+
+      // Transform the data to match the expected format
+      const data = rawData.map((session: any) => ({
+        id: session.id,
+        clientId: session.client_id,
+        clientName: session.clients ? `${session.clients.owner_first_name} ${session.clients.owner_last_name}` : session.client_name || 'Unknown Client',
+        dogName: session.clients?.dog_name || session.dog_name || null,
+        date: session.date,
+        time: session.time,
+        sessionType: session.session_type || 'General Session',
+        amount: session.amount,
+        createdAt: session.created_at,
+      }));
+
       console.log(`✅ Server: Found ${data.length} sessions`);
+      console.log('🔍 Transformed session data:', JSON.stringify(data[0], null, 2));
       return { data, error: null };
     } catch (error) {
       console.error('❌ Server: Error fetching sessions:', error);
@@ -46,13 +72,24 @@ class ServerSupabaseClient {
   async addSession(session: any) {
     console.log('➕ Server: Adding session to Supabase...');
     try {
+      // Transform the session data to match database schema
+      const dbSession = {
+        client_id: session.clientId,
+        client_name: session.clientName,
+        dog_name: session.dogName,
+        date: session.date,
+        time: session.time,
+        session_type: session.sessionType,
+        amount: session.amount,
+      };
+
       const response = await fetch(`${this.baseUrl}/sessions?select=*`, {
         method: 'POST',
         headers: {
           ...this.getHeaders(),
           'Prefer': 'return=representation'
         },
-        body: JSON.stringify(session),
+        body: JSON.stringify(dbSession),
       });
 
       if (!response.ok) {
@@ -61,9 +98,23 @@ class ServerSupabaseClient {
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
-      const data = await response.json();
+      const rawData = await response.json();
+
+      // Transform the response back to frontend format
+      const data = rawData.map((session: any) => ({
+        id: session.id,
+        clientId: session.client_id,
+        clientName: session.client_name,
+        dogName: session.dog_name,
+        date: session.date,
+        time: session.time,
+        sessionType: session.session_type,
+        amount: session.amount,
+        createdAt: session.created_at,
+      }));
+
       console.log('✅ Server: Session added successfully');
-      return { data, error: null };
+      return { data: data[0], error: null };
     } catch (error) {
       console.error('❌ Server: Error adding session:', error);
       return { data: null, error };
@@ -73,10 +124,20 @@ class ServerSupabaseClient {
   async updateSession(id: string, updates: any) {
     console.log('✏️ Server: Updating session in Supabase...');
     try {
+      // Transform the updates to match database schema
+      const dbUpdates: any = {};
+      if (updates.clientId !== undefined) dbUpdates.client_id = updates.clientId;
+      if (updates.clientName !== undefined) dbUpdates.client_name = updates.clientName;
+      if (updates.dogName !== undefined) dbUpdates.dog_name = updates.dogName;
+      if (updates.date !== undefined) dbUpdates.date = updates.date;
+      if (updates.time !== undefined) dbUpdates.time = updates.time;
+      if (updates.sessionType !== undefined) dbUpdates.session_type = updates.sessionType;
+      if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
+
       const response = await fetch(`${this.baseUrl}/sessions?id=eq.${id}`, {
         method: 'PATCH',
         headers: this.getHeaders(),
-        body: JSON.stringify(updates),
+        body: JSON.stringify(dbUpdates),
       });
 
       if (!response.ok) {
