@@ -10,6 +10,49 @@ import { format, parseISO, isValid } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn, formatFullNameAndDogName, formatPhoneNumber } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  getClients,
+  getSessions as getSessionsFromFirestore,
+  addClient as fbAddClient,
+  updateClient as updateClientInFirestore,
+  deleteClient as deleteClientFromFirestore,
+  getBehaviouralBrief as getBehaviouralBriefByBriefId,
+  getBehaviourQuestionnaire as getBehaviourQuestionnaireById,
+} from '@/lib/supabaseService';
 
 
 const internalClientFormSchema = z.object({
