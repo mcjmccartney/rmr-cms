@@ -651,7 +651,7 @@ export default function HomePage() {
                 </Button>
                 <Sheet open={isAddClientSheetOpen} onOpenChange={setIsAddClientSheetOpen}>
                   <SheetTrigger asChild>
-                      <Button size="sm">
+                      <Button>
                         <UserPlus className="h-4 w-4" />
                       </Button>
                   </SheetTrigger>
@@ -734,7 +734,7 @@ export default function HomePage() {
                 </Sheet>
                 <Sheet open={isAddSessionSheetOpen} onOpenChange={setIsAddSessionSheetOpen}>
                     <SheetTrigger asChild>
-                        <Button size="sm">
+                        <Button>
                           <CalendarPlus className="h-4 w-4" />
                         </Button>
                     </SheetTrigger>
