@@ -108,6 +108,17 @@ import { cn, formatFullNameAndDogName, formatTimeWithoutSeconds } from '@/lib/ut
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar as ShadCalendar } from '@/components/ui/calendar';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 
 const internalClientFormSchema = z.object({
@@ -395,6 +406,20 @@ export default function HomePage() {
     } catch (error) {
       console.error("Error fetching brief:", error);
     } finally {
+      setIsLoadingBriefForSessionSheet(false);
+    }
+  };
+
+  const handleViewQuestionnaireForSession = async () => {
+    if (!clientForSelectedSession || !clientForSelectedSession.behaviourQuestionnaireId) return;
+    setIsLoadingQuestionnaireForSessionSheet(true);
+    try {
+      const questionnaire = await getBehaviourQuestionnaire(clientForSelectedSession.behaviourQuestionnaireId);
+      setQuestionnaireForSessionSheet(questionnaire);
+      setSessionSheetViewMode('behaviourQuestionnaire');
+    } catch (error) {
+      console.error("Error fetching questionnaire:", error);
+    } finally {
       setIsLoadingQuestionnaireForSessionSheet(false);
     }
   };
@@ -445,20 +470,120 @@ export default function HomePage() {
 
   const handleAddSessionSubmit: SubmitHandler<SessionFormValues> = async (data) => {
     setIsSubmittingSheet(true);
-    const selectedClient = clients.find(c => c.id === data.clientId);
-    if (!selectedClient) {
+    try {
+      const selectedClient = clients.find(c => c.id === data.clientId);
+      if (!selectedClient) {
+        throw new Error("Selected client not found");
+      }
+
+      const sessionData = {
+        clientId: data.clientId,
+        clientName: `${selectedClient.ownerFirstName} ${selectedClient.ownerLastName}`,
+        dogName: selectedClient.dogName,
+        date: format(data.date, 'yyyy-MM-dd'),
+        time: data.time,
+        sessionType: data.sessionType,
+        amount: data.amount,
+      };
+
+      const newSession = await addSession(sessionData);
+      setSessions(prev => [newSession, ...prev]);
       setIsAddSessionSheetOpen(false);
       resetAddSessionForm();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to add session.";
+      console.error("Error adding session:", err);
+    } finally {
+      setIsSubmittingSheet(false);
+    }
+  };
+
+  const handleUpdateSession = async (data: SessionFormValues) => {
+    if (!sessionToEdit) return;
+    setIsSubmittingSheet(true);
+    try {
+      const selectedClient = clients.find(c => c.id === data.clientId);
+      if (!selectedClient) {
+        throw new Error("Selected client not found");
+      }
+
+      await updateSession(sessionToEdit.id, {
+        clientId: data.clientId,
+        date: format(data.date, 'yyyy-MM-dd'),
+        time: data.time,
+        sessionType: data.sessionType,
+        amount: data.amount,
+      });
+
+      setSessions(prev => prev.map(session =>
+        session.id === sessionToEdit.id
+          ? {
+              ...session,
+              clientId: data.clientId,
+              clientName: `${selectedClient.ownerFirstName} ${selectedClient.ownerLastName}`,
+              dogName: selectedClient.dogName,
+              date: format(data.date, 'yyyy-MM-dd'),
+              time: data.time,
+              sessionType: data.sessionType,
+              amount: data.amount,
+            }
+          : session
+      ));
       setIsEditSessionSheetOpen(false);
       setSessionToEdit(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to update session.";
+      console.error("Error updating session:", err);
+    } finally {
+      setIsSubmittingSheet(false);
+    }
+  };
+
+  const handleDeleteSession = async (session: Session) => {
+    setIsSubmittingSheet(true);
+    try {
+      await deleteSession(session.id);
+      setSessions(prev => prev.filter(s => s.id !== session.id));
       setIsSessionSheetOpen(false);
       setSelectedSessionForSheet(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to delete session.";
+      console.error("Error deleting session:", err);
+    } finally {
+      setIsSubmittingSheet(false);
+    }
+  };
+
+  const filteredSessions = useMemo(() => {
+    if (!searchTerm.trim()) return sessions;
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    return sessions.filter(session => {
+      const client = clients.find(c => c.id === session.clientId);
+      const ownerFullName = client ? `${client.ownerFirstName} ${client.ownerLastName}` : (session.clientName || '');
+      const dogName = client?.dogName || session.dogName || '';
+
+      const nameMatch = formatFullNameAndDogName(ownerFullName, dogName).toLowerCase().includes(lowerSearchTerm);
+      return nameMatch;
+    });
+  }, [sessions, searchTerm, clients]);
+
+  const handleDeleteSessionRequest = (session: Session) => {
+    setSessionToDelete(session);
+    setIsDeleteSessionDialogOpen(true);
+  };
+
+  const handleConfirmDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    await handleDeleteSession(sessionToDelete);
+    setIsDeleteSessionDialogOpen(false);
+    setSessionToDelete(null);
+  };
+
+  const CustomDayContent = (props: DayProps) => {
+    const daySessions = filteredSessions.filter(session => {
+      const sessionDate = parseISO(session.date);
+      return isValid(sessionDate) && isSameDay(sessionDate, props.date);
+    });
 
     return (
       <div className={cn(
@@ -494,7 +619,7 @@ export default function HomePage() {
         )}
       </div>
     );
-  }
+  };
 
   if (isLoadingData) {
     return (
