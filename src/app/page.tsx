@@ -651,9 +651,8 @@ export default function HomePage() {
                 </Button>
                 <Sheet open={isAddClientSheetOpen} onOpenChange={setIsAddClientSheetOpen}>
                   <SheetTrigger asChild>
-                      <Button size="sm" className="sm:px-3">
+                      <Button size="sm">
                         <UserPlus className="h-4 w-4" />
-                        <span className="hidden sm:inline ml-2">New Client</span>
                       </Button>
                   </SheetTrigger>
                   <SheetContent className="flex flex-col h-full sm:max-w-md bg-card">
@@ -735,9 +734,8 @@ export default function HomePage() {
                 </Sheet>
                 <Sheet open={isAddSessionSheetOpen} onOpenChange={setIsAddSessionSheetOpen}>
                     <SheetTrigger asChild>
-                        <Button size="sm" className="sm:px-3">
+                        <Button size="sm">
                           <CalendarPlus className="h-4 w-4" />
-                          <span className="hidden sm:inline ml-2">New Session</span>
                         </Button>
                     </SheetTrigger>
                    <SheetContent className="flex flex-col h-full sm:max-w-md bg-card">
