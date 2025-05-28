@@ -4,6 +4,7 @@ import { Inter, Roboto_Mono, Montserrat } from 'next/font/google'; // Added Mont
 import './globals.css';
 import AppLayout from '@/components/layout/app-layout';
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from '@/contexts/auth-context';
 
 const inter = Inter({
   variable: '--font-sans',
