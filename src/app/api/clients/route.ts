@@ -8,7 +8,7 @@ class ServerSupabaseClient {
   constructor() {
     this.baseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1`;
     this.serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-    
+
     if (!this.serviceRoleKey) {
       throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
     }
@@ -110,13 +110,16 @@ class ServerSupabaseClient {
   }
 }
 
-const serverSupabase = new ServerSupabaseClient();
+function getServerSupabaseClient() {
+  return new ServerSupabaseClient();
+}
 
 // GET /api/clients
 export async function GET() {
   try {
+    const serverSupabase = getServerSupabaseClient();
     const { data, error } = await serverSupabase.getClients();
-    
+
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -131,9 +134,10 @@ export async function GET() {
 // POST /api/clients
 export async function POST(request: NextRequest) {
   try {
+    const serverSupabase = getServerSupabaseClient();
     const client = await request.json();
     const { data, error } = await serverSupabase.addClient(client);
-    
+
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -148,16 +152,17 @@ export async function POST(request: NextRequest) {
 // PATCH /api/clients/[id]
 export async function PATCH(request: NextRequest) {
   try {
+    const serverSupabase = getServerSupabaseClient();
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
-    
+
     if (!id) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
     }
 
     const updates = await request.json();
     const { error } = await serverSupabase.updateClient(id, updates);
-    
+
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -172,15 +177,16 @@ export async function PATCH(request: NextRequest) {
 // DELETE /api/clients/[id]
 export async function DELETE(request: NextRequest) {
   try {
+    const serverSupabase = getServerSupabaseClient();
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
-    
+
     if (!id) {
       return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
     }
 
     const { error } = await serverSupabase.deleteClient(id);
-    
+
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }

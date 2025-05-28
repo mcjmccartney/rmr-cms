@@ -112,11 +112,14 @@ class ServerSupabaseClient {
   }
 }
 
-const serverSupabase = new ServerSupabaseClient();
+function getServerSupabaseClient() {
+  return new ServerSupabaseClient();
+}
 
 // GET /api/sessions
 export async function GET() {
   try {
+    const serverSupabase = getServerSupabaseClient();
     const { data, error } = await serverSupabase.getSessions();
 
     if (error) {
@@ -133,6 +136,7 @@ export async function GET() {
 // POST /api/sessions
 export async function POST(request: NextRequest) {
   try {
+    const serverSupabase = getServerSupabaseClient();
     const session = await request.json();
     const { data, error } = await serverSupabase.addSession(session);
 
@@ -150,6 +154,7 @@ export async function POST(request: NextRequest) {
 // PATCH /api/sessions/[id]
 export async function PATCH(request: NextRequest) {
   try {
+    const serverSupabase = getServerSupabaseClient();
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
 
@@ -174,6 +179,7 @@ export async function PATCH(request: NextRequest) {
 // DELETE /api/sessions/[id]
 export async function DELETE(request: NextRequest) {
   try {
+    const serverSupabase = getServerSupabaseClient();
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
 
