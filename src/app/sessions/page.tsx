@@ -608,7 +608,7 @@ export default function SessionsPage() {
             </Button>
             <Sheet open={isAddSessionSheetOpen} onOpenChange={setIsAddSessionSheetOpen}>
           <SheetTrigger asChild>
-            <Button className="sm:px-4 sm:py-2">
+            <Button className="w-auto sm:px-6 sm:py-3">
               <CalendarPlus className="h-4 w-4" />
               <span className="hidden sm:inline ml-2">New Session</span>
             </Button>

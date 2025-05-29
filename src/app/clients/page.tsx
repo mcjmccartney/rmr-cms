@@ -423,7 +423,7 @@ export default function ClientsPage() {
             </DropdownMenu>
             <Sheet open={isAddClientSheetOpen} onOpenChange={setIsAddClientSheetOpen}>
                 <SheetTrigger asChild>
-                  <Button className="sm:px-4 sm:py-2">
+                  <Button className="w-auto sm:px-6 sm:py-3">
                     <UserPlus className="h-4 w-4" />
                     <span className="hidden sm:inline ml-2">New Client</span>
                   </Button>
