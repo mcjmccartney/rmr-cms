@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       const { data: existingClients, error: clientSearchError } = await supabase
         .from('clients')
         .select('id')
-        .eq('contactEmail', data.contactEmail)
+        .eq('contact_email', data.contactEmail)
         .limit(1);
 
       if (clientSearchError) {
@@ -37,15 +37,15 @@ export async function POST(request: NextRequest) {
       } else {
         // Create new client
         const clientData = {
-          ownerFirstName: data.ownerFirstName,
-          ownerLastName: data.ownerLastName,
-          contactEmail: data.contactEmail,
-          contactNumber: data.contactNumber,
+          owner_first_name: data.ownerFirstName,
+          owner_last_name: data.ownerLastName,
+          contact_email: data.contactEmail,
+          contact_number: data.contactNumber,
           postcode: data.postcode,
-          dogName: data.dogName,
-          submissionDate: data.submissionDate,
-          isMember: false,
-          isActive: true,
+          dog_name: data.dogName,
+          submission_date: data.submissionDate,
+          is_member: false,
+          is_active: true,
         };
 
         const { data: newClient, error: clientError } = await supabase
@@ -63,14 +63,14 @@ export async function POST(request: NextRequest) {
 
       // Create behavioural brief
       const briefData = {
-        clientId,
-        dogName: data.dogName,
-        dogSex: data.dogSex,
-        dogBreed: data.dogBreed,
-        lifeWithDogAndHelpNeeded: data.lifeWithDogAndHelpNeeded,
-        bestOutcome: data.bestOutcome,
-        idealSessionTypes: data.idealSessionTypes,
-        submissionDate: data.submissionDate,
+        client_id: clientId,
+        dog_name: data.dogName,
+        dog_sex: data.dogSex,
+        dog_breed: data.dogBreed,
+        life_with_dog_and_help_needed: data.lifeWithDogAndHelpNeeded,
+        best_outcome: data.bestOutcome,
+        ideal_session_types: data.idealSessionTypes,
+        submission_date: data.submissionDate,
       };
 
       const { data: newBrief, error: briefError } = await supabase
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       // Update client with behavioural brief ID
       const { error: updateError } = await supabase
         .from('clients')
-        .update({ behaviouralBriefId: newBrief.id })
+        .update({ behavioural_brief_id: newBrief.id })
         .eq('id', clientId);
 
       if (updateError) {
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       const { data: existingClients, error: clientSearchError } = await supabase
         .from('clients')
         .select('id')
-        .eq('contactEmail', data.contactEmail)
+        .eq('contact_email', data.contactEmail)
         .limit(1);
 
       if (clientSearchError) {
@@ -115,22 +115,22 @@ export async function POST(request: NextRequest) {
       } else {
         // Create new client
         const clientData = {
-          ownerFirstName: data.ownerFirstName,
-          ownerLastName: data.ownerLastName,
-          contactEmail: data.contactEmail,
-          contactNumber: data.contactNumber,
+          owner_first_name: data.ownerFirstName,
+          owner_last_name: data.ownerLastName,
+          contact_email: data.contactEmail,
+          contact_number: data.contactNumber,
           postcode: data.postcode,
-          dogName: data.dogName,
-          submissionDate: data.submissionDate,
-          isMember: false,
-          isActive: true,
+          dog_name: data.dogName,
+          submission_date: data.submissionDate,
+          is_member: false,
+          is_active: true,
           address: {
             addressLine1: data.addressLine1,
             addressLine2: data.addressLine2,
             city: data.city,
             country: data.country,
           },
-          howHeardAboutServices: data.howHeardAboutServices,
+          how_heard_about_services: data.howHeardAboutServices,
         };
 
         const { data: newClient, error: clientError } = await supabase
@@ -148,53 +148,53 @@ export async function POST(request: NextRequest) {
 
       // Create behaviour questionnaire
       const questionnaireData = {
-        clientId,
-        dogName: data.dogName,
-        dogAge: data.dogAge,
-        dogSex: data.dogSex,
-        dogBreed: data.dogBreed,
-        neuteredSpayedDetails: data.neuteredSpayedDetails,
-        mainProblem: data.mainProblem,
-        problemTendencyFirstNoticed: data.problemTendencyFirstNoticed,
-        problemFrequencyDetails: data.problemFrequencyDetails,
-        problemRecentChanges: data.problemRecentChanges,
-        problemAnticipationDetails: data.problemAnticipationDetails,
-        dogMotivationForProblem: data.dogMotivationForProblem,
-        problemAddressingAttempts: data.problemAddressingAttempts,
-        idealTrainingOutcome: data.idealTrainingOutcome,
-        otherHelpNeeded: data.otherHelpNeeded,
-        medicalHistory: data.medicalHistory,
-        vetConsultationDetails: data.vetConsultationDetails,
-        dogOrigin: data.dogOrigin,
-        rescueBackground: data.rescueBackground,
-        dogAgeWhenAcquired: data.dogAgeWhenAcquired,
-        dietDetails: data.dietDetails,
-        foodMotivationLevel: data.foodMotivationLevel,
-        mealtimeRoutine: data.mealtimeRoutine,
-        treatRoutine: data.treatRoutine,
-        externalTreatsConsent: data.externalTreatsConsent,
-        playEngagement: data.playEngagement,
-        affectionResponse: data.affectionResponse,
-        exerciseRoutine: data.exerciseRoutine,
-        muzzleUsage: data.muzzleUsage,
-        reactionToFamiliarPeople: data.reactionToFamiliarPeople,
-        reactionToUnfamiliarPeople: data.reactionToUnfamiliarPeople,
-        housetrainedStatus: data.housetrainedStatus,
-        activitiesAsideFromWalks: data.activitiesAsideFromWalks,
-        dogLikes: data.dogLikes,
-        dogChallenges: data.dogChallenges,
-        positiveReinforcementMethods: data.positiveReinforcementMethods,
-        favoriteRewards: data.favoriteRewards,
-        correctionMethods: data.correctionMethods,
-        correctionEffects: data.correctionEffects,
-        previousProfessionalTraining: data.previousProfessionalTraining,
-        previousTrainingMethodsUsed: data.previousTrainingMethodsUsed,
-        previousTrainingExperienceResults: data.previousTrainingExperienceResults,
-        sociabilityWithDogs: data.sociabilityWithDogs,
-        sociabilityWithPeople: data.sociabilityWithPeople,
-        additionalInformation: data.additionalInformation,
-        timeDedicatedToTraining: data.timeDedicatedToTraining,
-        submissionDate: data.submissionDate,
+        client_id: clientId,
+        dog_name: data.dogName,
+        dog_age: data.dogAge,
+        dog_sex: data.dogSex,
+        dog_breed: data.dogBreed,
+        neutered_spayed_details: data.neuteredSpayedDetails,
+        main_problem: data.mainProblem,
+        problem_tendency_first_noticed: data.problemTendencyFirstNoticed,
+        problem_frequency_details: data.problemFrequencyDetails,
+        problem_recent_changes: data.problemRecentChanges,
+        problem_anticipation_details: data.problemAnticipationDetails,
+        dog_motivation_for_problem: data.dogMotivationForProblem,
+        problem_addressing_attempts: data.problemAddressingAttempts,
+        ideal_training_outcome: data.idealTrainingOutcome,
+        other_help_needed: data.otherHelpNeeded,
+        medical_history: data.medicalHistory,
+        vet_consultation_details: data.vetConsultationDetails,
+        dog_origin: data.dogOrigin,
+        rescue_background: data.rescueBackground,
+        dog_age_when_acquired: data.dogAgeWhenAcquired,
+        diet_details: data.dietDetails,
+        food_motivation_level: data.foodMotivationLevel,
+        mealtime_routine: data.mealtimeRoutine,
+        treat_routine: data.treatRoutine,
+        external_treats_consent: data.externalTreatsConsent,
+        play_engagement: data.playEngagement,
+        affection_response: data.affectionResponse,
+        exercise_routine: data.exerciseRoutine,
+        muzzle_usage: data.muzzleUsage,
+        reaction_to_familiar_people: data.reactionToFamiliarPeople,
+        reaction_to_unfamiliar_people: data.reactionToUnfamiliarPeople,
+        housetrained_status: data.housetrainedStatus,
+        activities_aside_from_walks: data.activitiesAsideFromWalks,
+        dog_likes: data.dogLikes,
+        dog_challenges: data.dogChallenges,
+        positive_reinforcement_methods: data.positiveReinforcementMethods,
+        favorite_rewards: data.favoriteRewards,
+        correction_methods: data.correctionMethods,
+        correction_effects: data.correctionEffects,
+        previous_professional_training: data.previousProfessionalTraining,
+        previous_training_methods_used: data.previousTrainingMethodsUsed,
+        previous_training_experience_results: data.previousTrainingExperienceResults,
+        sociability_with_dogs: data.sociabilityWithDogs,
+        sociability_with_people: data.sociabilityWithPeople,
+        additional_information: data.additionalInformation,
+        time_dedicated_to_training: data.timeDedicatedToTraining,
+        submission_date: data.submissionDate,
       };
 
       const { data: newQuestionnaire, error: questionnaireError } = await supabase
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
       // Update client with behaviour questionnaire ID
       const { error: updateError } = await supabase
         .from('clients')
-        .update({ behaviourQuestionnaireId: newQuestionnaire.id })
+        .update({ behaviour_questionnaire_id: newQuestionnaire.id })
         .eq('id', clientId);
 
       if (updateError) {
