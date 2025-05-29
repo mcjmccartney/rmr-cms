@@ -1,3 +1,15 @@
+// Check if Supabase is configured first
+export const isSupabaseConfigured = !!(
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+
+console.log('🔧 Supabase configuration check:', {
+  url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+  key: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  configured: isSupabaseConfigured
+});
+
 // Try to import Supabase, fall back to mock if not available
 let createClient: any = null;
 let supabaseAvailable = false;
@@ -371,11 +383,7 @@ export interface Database {
   }
 }
 
-// Check if Supabase is configured
-export const isSupabaseConfigured = !!(
-  process.env.NEXT_PUBLIC_SUPABASE_URL &&
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+// Configuration check is now at the top of the file
 
 // Browser client for client-side operations
 export const createSupabaseBrowserClient = async () => {

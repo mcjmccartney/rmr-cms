@@ -69,24 +69,22 @@ const dbRowToSession = (row: Database['public']['Tables']['sessions']['Row']): S
 
 // Client operations
 export const getClients = async (): Promise<Client[]> => {
-  if (!isSupabaseConfigured) {
-    console.warn('Supabase is not configured. Returning empty array.');
-    return [];
-  }
-
   try {
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .order('created_at', { ascending: false });
+    console.log('🔍 Fetching clients via API...');
+    const response = await fetch('/api/clients');
 
-    if (error) {
-      console.error('Error fetching clients:', error);
-      throw error;
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return data?.map(dbRowToClient) || [];
+    const result = await response.json();
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    console.log(`✅ Fetched ${result.data?.length || 0} clients`);
+    return result.data || [];
   } catch (error) {
     console.error('Error in getClients:', error);
     return [];
@@ -128,41 +126,28 @@ export const addClientToFirestore = async (
     fullAddress?: string;
   }
 ): Promise<Client> => {
-  if (!isSupabaseConfigured) {
-    // Fallback to mock implementation
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    const newClient: Client = {
-      ...clientData,
-      id: 'mock-client-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
-      contactNumber: formatPhoneNumber(clientData.contactNumber),
-      isMember: clientData.isMember || false,
-      isActive: clientData.isActive === undefined ? true : clientData.isActive,
-      submissionDate: clientData.submissionDate || format(new Date(), "yyyy-MM-dd HH:mm:ss"),
-      createdAt: new Date().toISOString(),
-      lastSession: 'N/A',
-      nextSession: 'Not Scheduled',
-    };
-
-    return newClient;
-  }
-
   try {
-    const supabase = getSupabaseClient();
-    const insertData = clientToDbInsert(clientData as any);
+    console.log('➕ Adding client via API...');
+    const response = await fetch('/api/clients', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(clientData),
+    });
 
-    const { data, error } = await supabase
-      .from('clients')
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error adding client:', error);
-      throw error;
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return dbRowToClient(data);
+    const result = await response.json();
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    console.log('✅ Client added successfully');
+    return result.data;
   } catch (error) {
     console.error('Error in addClientToFirestore:', error);
     throw error;
@@ -241,24 +226,22 @@ export const deleteClientFromFirestore = async (clientId: string): Promise<void>
 
 // Session operations
 export const getSessionsFromFirestore = async (): Promise<Session[]> => {
-  if (!isSupabaseConfigured) {
-    console.warn('Supabase is not configured. Returning empty array.');
-    return [];
-  }
-
   try {
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from('sessions')
-      .select('*')
-      .order('date', { ascending: false });
+    console.log('🔍 Fetching sessions via API...');
+    const response = await fetch('/api/sessions');
 
-    if (error) {
-      console.error('Error fetching sessions:', error);
-      return [];
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return data?.map(dbRowToSession) || [];
+    const result = await response.json();
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    console.log(`✅ Fetched ${result.data?.length || 0} sessions`);
+    return result.data || [];
   } catch (error) {
     console.error('Error in getSessionsFromFirestore:', error);
     return [];
@@ -268,35 +251,28 @@ export const getSessionsFromFirestore = async (): Promise<Session[]> => {
 export const addSessionToFirestore = async (
   sessionData: Omit<Session, 'id' | 'createdAt'>
 ): Promise<Session> => {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase is not configured. Cannot add session.');
-  }
-
   try {
-    const supabase = getSupabaseClient();
+    console.log('➕ Adding session via API...');
+    const response = await fetch('/api/sessions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(sessionData),
+    });
 
-    const insertData: Database['public']['Tables']['sessions']['Insert'] = {
-      client_id: sessionData.clientId,
-      client_name: sessionData.clientName,
-      dog_name: sessionData.dogName,
-      date: sessionData.date,
-      time: sessionData.time,
-      session_type: sessionData.sessionType,
-      amount: sessionData.amount,
-    };
-
-    const { data, error } = await supabase
-      .from('sessions')
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error adding session:', error);
-      throw error;
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return dbRowToSession(data);
+    const result = await response.json();
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    console.log('✅ Session added successfully');
+    return result.data;
   } catch (error) {
     console.error('Error in addSessionToFirestore:', error);
     throw error;
