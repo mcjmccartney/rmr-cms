@@ -336,15 +336,105 @@ export const deleteSessionFromFirestore = async (sessionId: string): Promise<voi
   }
 };
 
-// Placeholder functions for behavioural briefs and questionnaires
+// Behavioural Brief operations
+export const getBehaviouralBriefs = async (clientId?: string): Promise<BehaviouralBrief[]> => {
+  try {
+    console.log('🔍 Fetching behavioural briefs via API...');
+    const url = clientId ? `/api/behavioural-briefs?clientId=${clientId}` : '/api/behavioural-briefs';
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    console.log(`✅ Fetched ${result.data?.length || 0} behavioural briefs`);
+    return result.data || [];
+  } catch (error) {
+    console.error('Error in getBehaviouralBriefs:', error);
+    return [];
+  }
+};
+
 export const getBehaviouralBriefByBriefId = async (briefId: string): Promise<BehaviouralBrief | null> => {
-  console.warn('getBehaviouralBriefByBriefId not yet implemented for Supabase');
-  return null;
+  try {
+    const briefs = await getBehaviouralBriefs();
+    return briefs.find(brief => brief.id === briefId) || null;
+  } catch (error) {
+    console.error('Error in getBehaviouralBriefByBriefId:', error);
+    return null;
+  }
+};
+
+export const addBehaviouralBrief = async (
+  briefData: Omit<BehaviouralBrief, 'id' | 'createdAt'>
+): Promise<BehaviouralBrief> => {
+  try {
+    console.log('➕ Adding behavioural brief via API...');
+    const response = await fetch('/api/behavioural-briefs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(briefData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    console.log('✅ Behavioural brief added successfully');
+    return result.data;
+  } catch (error) {
+    console.error('Error in addBehaviouralBrief:', error);
+    throw error;
+  }
+};
+
+// Behaviour Questionnaire operations
+export const getBehaviourQuestionnaires = async (clientId?: string): Promise<BehaviourQuestionnaire[]> => {
+  try {
+    console.log('🔍 Fetching behaviour questionnaires via API...');
+    const url = clientId ? `/api/behaviour-questionnaires?clientId=${clientId}` : '/api/behaviour-questionnaires';
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    console.log(`✅ Fetched ${result.data?.length || 0} behaviour questionnaires`);
+    return result.data || [];
+  } catch (error) {
+    console.error('Error in getBehaviourQuestionnaires:', error);
+    return [];
+  }
 };
 
 export const getBehaviourQuestionnaireById = async (questionnaireId: string): Promise<BehaviourQuestionnaire | null> => {
-  console.warn('getBehaviourQuestionnaireById not yet implemented for Supabase');
-  return null;
+  try {
+    const questionnaires = await getBehaviourQuestionnaires();
+    return questionnaires.find(q => q.id === questionnaireId) || null;
+  } catch (error) {
+    console.error('Error in getBehaviourQuestionnaireById:', error);
+    return null;
+  }
 };
 
 // Export type for compatibility

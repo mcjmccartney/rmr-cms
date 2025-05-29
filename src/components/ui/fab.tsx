@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { Menu, X, Users, CalendarDays, LayoutDashboard, DollarSign, Settings, LogOut } from "lucide-react";
+import { Menu, X, Users, CalendarDays, LayoutDashboard, DollarSign, Settings, LogOut, FileText, ClipboardList } from "lucide-react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Link from 'next/link';
@@ -44,6 +44,11 @@ const Fab = React.forwardRef<HTMLButtonElement, FabProps>(
       { id: 'finance', href: '/finance', icon: DollarSign, label: "Go to Finance" },
     ];
 
+    const formActions = [
+      { id: 'behavioural-brief', href: '/behavioural-brief', icon: FileText, label: "View Behavioural Brief" },
+      { id: 'behaviour-questionnaire', href: '/behaviour-questionnaire', icon: ClipboardList, label: "View Behaviour Questionnaire" },
+    ];
+
     const settingsActions = [
       // { id: 'settings', href: '/settings', icon: Settings, label: "Go to Settings" }, // Placeholder
     ];
@@ -76,6 +81,24 @@ const Fab = React.forwardRef<HTMLButtonElement, FabProps>(
                 <LogOut className="h-6 w-6" />
               </Button>
 
+              {/* Form Actions - Behavioural Brief and Behaviour Questionnaire */}
+              {formActions.map((action, index) => (
+                <Link href={action.href} passHref legacyBehavior key={action.id}>
+                  <a
+                    className={cn(
+                      actionButtonClasses,
+                      "transition-all duration-300 ease-out",
+                      `delay-${(formActions.length - 1 - index + 1) * 75}`, // Stagger delay after logout
+                      actionsOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+                    )}
+                    onClick={() => setActionsOpen(false)}
+                    aria-label={action.label}
+                  >
+                    <action.icon className="h-6 w-6" />
+                  </a>
+                </Link>
+              ))}
+
               {/* Settings Button Placeholder - can be enabled later */}
               {settingsActions.map((action, index) => (
                 <Link href={action.href} passHref legacyBehavior key={action.id}>
@@ -83,7 +106,7 @@ const Fab = React.forwardRef<HTMLButtonElement, FabProps>(
                     className={cn(
                       actionButtonClasses,
                       "transition-all duration-300 ease-out",
-                      `delay-${(settingsActions.length - 1 - index) * 75}`, // Stagger delay
+                      `delay-${(settingsActions.length - 1 - index + formActions.length + 1) * 75}`, // Stagger delay after forms
                       actionsOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
                     )}
                     onClick={() => setActionsOpen(false)}
@@ -102,7 +125,7 @@ const Fab = React.forwardRef<HTMLButtonElement, FabProps>(
                       actionButtonClasses,
                       "transition-all duration-300 ease-out",
                        // Stagger delay based on total number of buttons including settings/logout
-                      `delay-${(finalNavActions.length - 1 - index + settingsActions.length + 1) * 75}`,
+                      `delay-${(finalNavActions.length - 1 - index + settingsActions.length + formActions.length + 1) * 75}`,
                       actionsOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
                     )}
                     onClick={() => setActionsOpen(false)}
