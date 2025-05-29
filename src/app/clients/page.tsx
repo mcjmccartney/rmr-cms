@@ -868,7 +868,8 @@ export default function ClientsPage() {
                                 }}
                                 disabled={isProcessingDelete}
                             >
-                                Edit Contact
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Client
                             </Button>
                             <Button
                                 variant="destructive"
@@ -876,7 +877,7 @@ export default function ClientsPage() {
                                 onClick={() => clientForViewSheet && handleDeleteClientRequest(clientForViewSheet)}
                                 disabled={isProcessingDelete}
                             >
-                                  {isProcessingDelete && clientToDelete && clientToDelete.id === clientForViewSheet?.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                  {isProcessingDelete && clientToDelete && clientToDelete.id === clientForViewSheet?.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Trash2 className="mr-2 h-4 w-4" />}
                                 Delete Client
                             </Button>
                         </>
