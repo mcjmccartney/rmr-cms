@@ -612,9 +612,19 @@ export default function BehaviourQuestionnairePage() {
                 size="lg"
                 className="bg-[#4f6749] text-[#ebeadf] hover:bg-[#4f6749]/90"
                 disabled={isSubmitting}
-                tooltip="Submit Questionnaire"
+                tooltip="Submit Behaviour Questionnaire"
               >
-                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-5 w-5" />
+                    Submit Behaviour Questionnaire
+                  </>
+                )}
               </Button>
             </div>
           </form>

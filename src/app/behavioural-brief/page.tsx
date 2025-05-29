@@ -330,7 +330,17 @@ export default function BehaviouralBriefPage() {
                 disabled={isSubmitting}
                 tooltip="Submit Behavioural Brief"
               >
-                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-5 w-5" />
+                    Submit Behavioural Brief
+                  </>
+                )}
               </Button>
             </div>
           </form>
