@@ -5,8 +5,12 @@ function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+  console.log('🔧 Supabase Config Check:');
+  console.log('📍 URL:', supabaseUrl ? 'present' : 'missing');
+  console.log('🔐 Service Key:', supabaseServiceKey ? 'present' : 'missing');
+
   if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Supabase configuration is missing');
+    throw new Error('Supabase configuration is missing - please check your .env.local file');
   }
 
   return createClient(supabaseUrl, supabaseServiceKey);
@@ -17,8 +21,11 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient();
     const { type, data } = await request.json();
 
+    console.log('🔍 Public intake submission:', { type, data });
+
     if (type === 'behavioural-brief') {
       // First, check if client exists by email
+      console.log('🔍 Searching for existing client with email:', data.contactEmail);
       const { data: existingClients, error: clientSearchError } = await supabase
         .from('clients')
         .select('id')
@@ -26,16 +33,21 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (clientSearchError) {
+        console.error('❌ Client search error:', clientSearchError);
         throw new Error(`Failed to search for existing client: ${clientSearchError.message}`);
       }
+
+      console.log('✅ Client search result:', existingClients);
 
       let clientId: string;
 
       if (existingClients && existingClients.length > 0) {
         // Client exists, use existing ID
         clientId = existingClients[0].id;
+        console.log('✅ Using existing client ID:', clientId);
       } else {
         // Create new client
+        console.log('➕ Creating new client...');
         const clientData = {
           owner_first_name: data.ownerFirstName,
           owner_last_name: data.ownerLastName,
@@ -48,6 +60,8 @@ export async function POST(request: NextRequest) {
           is_active: true,
         };
 
+        console.log('📝 Client data to insert:', clientData);
+
         const { data: newClient, error: clientError } = await supabase
           .from('clients')
           .insert([clientData])
@@ -55,13 +69,16 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (clientError) {
+          console.error('❌ Client creation error:', clientError);
           throw new Error(`Failed to create client: ${clientError.message}`);
         }
 
         clientId = newClient.id;
+        console.log('✅ New client created with ID:', clientId);
       }
 
       // Create behavioural brief
+      console.log('📝 Creating behavioural brief for client ID:', clientId);
       const briefData = {
         client_id: clientId,
         dog_name: data.dogName,
@@ -73,6 +90,8 @@ export async function POST(request: NextRequest) {
         submission_date: data.submissionDate,
       };
 
+      console.log('📝 Brief data to insert:', briefData);
+
       const { data: newBrief, error: briefError } = await supabase
         .from('behavioural_briefs')
         .insert([briefData])
@@ -80,19 +99,25 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (briefError) {
+        console.error('❌ Behavioural brief creation error:', briefError);
         throw new Error(`Failed to create behavioural brief: ${briefError.message}`);
       }
 
+      console.log('✅ Behavioural brief created:', newBrief);
+
       // Update client with behavioural brief ID
+      console.log('🔗 Linking behavioural brief to client...');
       const { error: updateError } = await supabase
         .from('clients')
         .update({ behavioural_brief_id: newBrief.id })
         .eq('id', clientId);
 
       if (updateError) {
+        console.error('❌ Client update error:', updateError);
         throw new Error(`Failed to link behavioural brief to client: ${updateError.message}`);
       }
 
+      console.log('✅ Behavioural brief linked to client successfully');
       return NextResponse.json({ success: true, clientId, briefId: newBrief.id });
 
     } else if (type === 'behaviour-questionnaire') {
