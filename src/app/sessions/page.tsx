@@ -610,6 +610,7 @@ export default function SessionsPage() {
           <SheetTrigger asChild>
             <Button>
               <CalendarPlus className="h-4 w-4" />
+              <span className="hidden sm:inline ml-2">New Session</span>
             </Button>
           </SheetTrigger>
           <SheetContent className="flex flex-col h-full sm:max-w-md bg-card">
