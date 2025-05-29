@@ -423,7 +423,7 @@ export default function ClientsPage() {
             </DropdownMenu>
             <Sheet open={isAddClientSheetOpen} onOpenChange={setIsAddClientSheetOpen}>
                 <SheetTrigger asChild>
-                  <Button className="h-10 w-10">
+                  <Button className="h-10 w-10 min-w-10 max-w-10 flex-shrink-0">
                     <UserPlus className="h-4 w-4" />
                   </Button>
                 </SheetTrigger>
