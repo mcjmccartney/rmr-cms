@@ -60,6 +60,7 @@ import { cn, formatFullNameAndDogName, formatTimeWithoutSeconds } from '@/lib/ut
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 // Supabase API functions
 const getClients = async () => {
   const response = await fetch('/api/clients');
@@ -163,6 +164,7 @@ const hourOptions = Array.from({ length: 24 }, (_, i) => ({ value: String(i).pad
 const minuteOptions = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map(m => ({ value: m, label: m }));
 
 export default function SessionsPage() {
+  const { toast } = useToast();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);

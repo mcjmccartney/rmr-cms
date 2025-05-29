@@ -27,10 +27,33 @@ try {
 // Simple mock client for when Supabase is not available
 const createMockClient = () => ({
   from: (table: string) => ({
-    select: () => Promise.resolve({ data: [], error: null }),
-    insert: () => Promise.resolve({ data: null, error: null }),
-    update: () => Promise.resolve({ data: null, error: null }),
-    delete: () => Promise.resolve({ data: null, error: null }),
+    select: (columns?: string) => ({
+      order: (column: string, options?: any) => ({
+        eq: (column: string, value: any) => Promise.resolve({ data: [], error: null }),
+        limit: (count: number) => Promise.resolve({ data: [], error: null }),
+        single: () => Promise.resolve({ data: null, error: null }),
+        then: (resolve: any) => resolve({ data: [], error: null })
+      }),
+      eq: (column: string, value: any) => Promise.resolve({ data: [], error: null }),
+      limit: (count: number) => Promise.resolve({ data: [], error: null }),
+      single: () => Promise.resolve({ data: null, error: null }),
+      then: (resolve: any) => resolve({ data: [], error: null })
+    }),
+    insert: (data: any) => ({
+      select: (columns?: string) => ({
+        single: () => Promise.resolve({ data: null, error: null }),
+        then: (resolve: any) => resolve({ data: null, error: null })
+      }),
+      then: (resolve: any) => resolve({ data: null, error: null })
+    }),
+    update: (data: any) => ({
+      eq: (column: string, value: any) => Promise.resolve({ data: null, error: null }),
+      then: (resolve: any) => resolve({ data: null, error: null })
+    }),
+    delete: () => ({
+      eq: (column: string, value: any) => Promise.resolve({ data: null, error: null }),
+      then: (resolve: any) => resolve({ data: null, error: null })
+    }),
   }),
   auth: {
     getSession: () => Promise.resolve({ data: { session: null }, error: null }),
