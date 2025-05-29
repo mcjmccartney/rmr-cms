@@ -575,14 +575,16 @@ export default function ClientsPage() {
                 <div className="p-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Image
-                        src="https://iili.io/34300ox.md.jpg"
-                        alt="RMR Logo"
-                        width={32}
-                        height={32}
-                        className="rounded-md"
-                        data-ai-hint="company logo"
-                      />
+                      {client.isMember && (
+                        <Image
+                          src="https://iili.io/34300ox.md.jpg"
+                          alt="Member Badge"
+                          width={32}
+                          height={32}
+                          className="rounded-md"
+                          data-ai-hint="member badge"
+                        />
+                      )}
                       <div>
                         <h3 className="text-sm font-semibold">{displayName}</h3>
                       </div>
