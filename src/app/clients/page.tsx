@@ -421,7 +421,7 @@ export default function ClientsPage() {
         <div className="flex items-center gap-2">
            <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9 focus:ring-0 focus:ring-offset-0">
+                <Button variant="outline" size="icon" className="h-9 w-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0">
                   <Filter className="h-4 w-4" />
                   <span className="sr-only">Filter Clients</span>
                 </Button>
@@ -438,7 +438,7 @@ export default function ClientsPage() {
             </DropdownMenu>
             <Sheet open={isAddClientSheetOpen} onOpenChange={setIsAddClientSheetOpen}>
                 <SheetTrigger asChild>
-                  <Button className="h-10 w-10 min-w-10 max-w-10 flex-shrink-0">
+                  <Button className="h-10 w-10 min-w-10 max-w-10 flex-shrink-0 focus-visible:ring-0 focus-visible:ring-offset-0">
                     <UserPlus className="h-4 w-4" />
                   </Button>
                 </SheetTrigger>
@@ -527,7 +527,7 @@ export default function ClientsPage() {
                         <Button
                           type="submit"
                           form="addClientFormInSheet"
-                          className="w-full"
+                          className="w-full focus-visible:ring-0 focus-visible:ring-offset-0"
                           disabled={isSubmittingSheet}
                         >
                           {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -670,7 +670,7 @@ export default function ClientsPage() {
               <Button
                 type="submit"
                 form="editClientFormInSheet"
-                className="w-full"
+                className="w-full focus-visible:ring-0 focus-visible:ring-offset-0"
                 disabled={isSubmittingSheet}
               >
                 {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -721,7 +721,7 @@ export default function ClientsPage() {
                                   {clientForViewSheet.behaviouralBriefId && (
                                       <Button
                                         onClick={handleViewBrief}
-                                        className="w-full"
+                                        className="w-full focus-visible:ring-0 focus-visible:ring-offset-0"
                                         variant="outline"
                                         disabled={isLoadingBriefForSheet}
                                       >
@@ -732,7 +732,7 @@ export default function ClientsPage() {
                                   {clientForViewSheet.behaviourQuestionnaireId && (
                                       <Button
                                         onClick={handleViewQuestionnaire}
-                                        className="w-full"
+                                        className="w-full focus-visible:ring-0 focus-visible:ring-offset-0"
                                         variant="outline"
                                         disabled={isLoadingQuestionnaireForSheet}
                                       >
@@ -744,10 +744,10 @@ export default function ClientsPage() {
 
                                  <Tabs defaultValue="sessions" className="w-full mt-6">
                                      <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full border">
-                                        <TabsTrigger value="sessions"  className="flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground">
+                                        <TabsTrigger value="sessions"  className="flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground">
                                         Sessions ({clientSessionsForView.length})
                                         </TabsTrigger>
-                                        <TabsTrigger value="membership" className="flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground">
+                                        <TabsTrigger value="membership" className="flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground">
                                         Membership
                                         </TabsTrigger>
                                     </TabsList>
@@ -856,7 +856,7 @@ export default function ClientsPage() {
                         <>
                             <Button
                                 variant="outline"
-                                className="flex-1"
+                                className="flex-1 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 onClick={() => {
                                     if (clientForViewSheet) {
                                     setClientToEdit(clientForViewSheet);
@@ -870,7 +870,7 @@ export default function ClientsPage() {
                             </Button>
                             <Button
                                 variant="destructive"
-                                className="flex-1"
+                                className="flex-1 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 onClick={() => clientForViewSheet && handleDeleteClientRequest(clientForViewSheet)}
                                 disabled={isProcessingDelete}
                             >
@@ -881,7 +881,7 @@ export default function ClientsPage() {
                     ) : (
                         <Button
                             variant="outline"
-                            className="w-full"
+                            className="w-full focus-visible:ring-0 focus-visible:ring-offset-0"
                             onClick={() => setSheetViewMode('clientInfo')}
                             >
                             Back to Client Details
@@ -901,8 +901,8 @@ export default function ClientsPage() {
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)} disabled={isProcessingDelete}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmDeleteClient} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" disabled={isProcessingDelete}>
+                <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)} disabled={isProcessingDelete} className="focus-visible:ring-0 focus-visible:ring-offset-0">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmDeleteClient} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground focus-visible:ring-0 focus-visible:ring-offset-0" disabled={isProcessingDelete}>
                 {isProcessingDelete && clientToDelete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Confirm Delete
                 </AlertDialogAction>
             </AlertDialogFooter>
