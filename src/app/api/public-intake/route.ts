@@ -135,10 +135,44 @@ export async function POST(request: NextRequest) {
       let clientId: string;
 
       if (existingClients && existingClients.length > 0) {
-        // Client exists, use existing ID
+        // Client exists, use existing ID and update their address
         clientId = existingClients[0].id;
+
+        // Format address for existing client
+        const addressParts = [
+          data.addressLine1,
+          data.addressLine2 && data.addressLine2.trim() ? data.addressLine2 : null,
+          data.city,
+          data.country
+        ].filter(Boolean); // Remove null/empty values
+
+        const formattedAddress = addressParts.join(',\n');
+
+        // Update existing client with new address information
+        const { error: updateClientError } = await supabase
+          .from('clients')
+          .update({
+            full_address: formattedAddress,
+            postcode: data.postcode,
+            contact_number: data.contactNumber
+          })
+          .eq('id', clientId);
+
+        if (updateClientError) {
+          console.error('❌ Failed to update existing client address:', updateClientError);
+          // Don't throw error, just log it - questionnaire submission should still proceed
+        }
       } else {
-        // Create new client
+        // Create new client with formatted address
+        const addressParts = [
+          data.addressLine1,
+          data.addressLine2 && data.addressLine2.trim() ? data.addressLine2 : null,
+          data.city,
+          data.country
+        ].filter(Boolean); // Remove null/empty values
+
+        const formattedAddress = addressParts.join(',\n');
+
         const clientData = {
           owner_first_name: data.ownerFirstName,
           owner_last_name: data.ownerLastName,
@@ -149,12 +183,7 @@ export async function POST(request: NextRequest) {
           submission_date: data.submissionDate,
           is_member: false,
           is_active: true,
-          address: {
-            addressLine1: data.addressLine1,
-            addressLine2: data.addressLine2,
-            city: data.city,
-            country: data.country,
-          },
+          full_address: formattedAddress,
           how_heard_about_services: data.howHeardAboutServices,
         };
 
