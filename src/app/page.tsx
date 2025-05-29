@@ -625,7 +625,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col gap-6 h-full">
-        <div className="flex items-center justify-between py-3"> {/* Removed CardHeader specific classes */}
+        <div className="flex items-center justify-between"> {/* Removed CardHeader specific classes and py-3 padding */}
             <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft className="h-4 w-4" /></Button>
                 <h2 className="text-lg font-semibold text-center min-w-[120px]">{format(currentMonth, 'MMMM yyyy')}</h2>
