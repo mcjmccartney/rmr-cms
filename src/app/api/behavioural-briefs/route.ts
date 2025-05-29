@@ -47,13 +47,16 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseClient();
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('clientId');
+    const id = searchParams.get('id');
 
     let query = supabase
       .from('behavioural_briefs')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (clientId) {
+    if (id) {
+      query = query.eq('id', id);
+    } else if (clientId) {
       query = query.eq('client_id', clientId);
     }
 

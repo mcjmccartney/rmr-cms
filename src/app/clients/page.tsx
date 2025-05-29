@@ -85,15 +85,29 @@ const deleteClient = async (id: string) => {
   return response.json();
 };
 
-// Placeholder functions for behavioural briefs and questionnaires
+// Behavioural brief and questionnaire functions
 const getBehaviouralBrief = async (briefId: string) => {
-  console.warn('getBehaviouralBrief not yet implemented');
-  return null;
+  try {
+    const response = await fetch(`/api/behavioural-briefs?id=${briefId}`);
+    if (!response.ok) throw new Error('Failed to fetch behavioural brief');
+    const result = await response.json();
+    return result.data?.[0] || null;
+  } catch (error) {
+    console.error('Error fetching behavioural brief:', error);
+    return null;
+  }
 };
 
 const getBehaviourQuestionnaire = async (questionnaireId: string) => {
-  console.warn('getBehaviourQuestionnaire not yet implemented');
-  return null;
+  try {
+    const response = await fetch(`/api/behaviour-questionnaires?id=${questionnaireId}`);
+    if (!response.ok) throw new Error('Failed to fetch behaviour questionnaire');
+    const result = await response.json();
+    return result.data?.[0] || null;
+  } catch (error) {
+    console.error('Error fetching behaviour questionnaire:', error);
+    return null;
+  }
 };
 
 
