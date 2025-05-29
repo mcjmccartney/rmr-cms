@@ -547,7 +547,15 @@ export default function ClientsPage() {
               <div
                 key={client.id}
                 className="bg-card shadow-sm rounded-md border border-border cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => { setClientForViewSheet(client); setIsViewSheetOpen(true); }}
+                onClick={() => {
+                  try {
+                    console.log('Opening client sheet for:', client);
+                    setClientForViewSheet(client);
+                    setIsViewSheetOpen(true);
+                  } catch (error) {
+                    console.error('Error opening client sheet:', error);
+                  }
+                }}
               >
                 <div className="p-2">
                   <div className="flex items-center justify-between">
