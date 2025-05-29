@@ -576,6 +576,14 @@ export default function HomePage() {
     const daySessions = filteredSessions.filter(session => {
       const sessionDate = parseISO(session.date);
       return isValid(sessionDate) && isSameDay(sessionDate, props.date);
+    }).sort((a, b) => {
+      try {
+        const timeA = parse(a.time, 'HH:mm', new Date());
+        const timeB = parse(b.time, 'HH:mm', new Date());
+        return compareAsc(timeA, timeB);
+      } catch {
+        return 0;
+      }
     });
 
     return (
