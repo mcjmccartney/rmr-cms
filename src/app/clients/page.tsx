@@ -142,6 +142,18 @@ const DetailRow: React.FC<{ label: string; value?: string | number | null | Reac
   );
 };
 
+const FullWidthDetailRow: React.FC<{ label: string; value?: string | number | null | React.ReactNode; className?: string; }> = ({ label, value, className }) => {
+  if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+    return null;
+  }
+  return (
+    <div className={cn("py-3", className)}>
+      <span className="text-sm text-muted-foreground block mb-2">{label}</span>
+      <span className="text-sm text-foreground break-words whitespace-pre-wrap block">{value}</span>
+    </div>
+  );
+};
+
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -787,8 +799,8 @@ export default function ClientsPage() {
                                 <DetailRow label="Dog Name:" value={briefForSheet.dogName} />
                                 <DetailRow label="Dog Sex:" value={briefForSheet.dogSex} />
                                 <DetailRow label="Dog Breed:" value={briefForSheet.dogBreed} />
-                                <DetailRow label="Life & Help Needed:" value={briefForSheet.lifeWithDogAndHelpNeeded} />
-                                <DetailRow label="Best Outcome:" value={briefForSheet.bestOutcome} />
+                                <FullWidthDetailRow label="Life & Help Needed:" value={briefForSheet.lifeWithDogAndHelpNeeded} />
+                                <FullWidthDetailRow label="Best Outcome:" value={briefForSheet.bestOutcome} />
                                 <DetailRow label="Ideal Sessions:" value={briefForSheet.idealSessionTypes?.join(', ')} />
                                 {briefForSheet.submissionDate && <DetailRow label="Submitted:" value={isValid(parseISO(briefForSheet.submissionDate)) ? format(parseISO(briefForSheet.submissionDate), 'PPP p') : briefForSheet.submissionDate} />}
                             </div>
@@ -807,46 +819,46 @@ export default function ClientsPage() {
                                 <DetailRow label="Dog Sex:" value={questionnaireForSheet.dogSex} />
                                 <DetailRow label="Dog Breed:" value={questionnaireForSheet.dogBreed} />
                                 <DetailRow label="Neutered/Spayed:" value={questionnaireForSheet.neuteredSpayedDetails} />
-                                <DetailRow label="Main Problem:" value={questionnaireForSheet.mainProblem} />
-                                <DetailRow label="Problem First Noticed:" value={questionnaireForSheet.problemTendencyFirstNoticed} />
-                                <DetailRow label="Problem Frequency:" value={questionnaireForSheet.problemFrequencyDetails} />
-                                <DetailRow label="Problem Recent Changes:" value={questionnaireForSheet.problemRecentChanges} />
-                                <DetailRow label="Problem Anticipation:" value={questionnaireForSheet.problemAnticipationDetails} />
-                                <DetailRow label="Dog Motivation (Problem):" value={questionnaireForSheet.dogMotivationForProblem} />
-                                <DetailRow label="Problem Attempts:" value={questionnaireForSheet.problemAddressingAttempts} />
-                                <DetailRow label="Ideal Outcome:" value={questionnaireForSheet.idealTrainingOutcome} />
-                                {questionnaireForSheet.otherHelpNeeded && <DetailRow label="Other Help Needed:" value={questionnaireForSheet.otherHelpNeeded} />}
-                                {questionnaireForSheet.medicalHistory && <DetailRow label="Medical History:" value={questionnaireForSheet.medicalHistory} />}
-                                {questionnaireForSheet.vetConsultationDetails && <DetailRow label="Vet Consultation:" value={questionnaireForSheet.vetConsultationDetails} />}
-                                {questionnaireForSheet.dogOrigin && <DetailRow label="Dog Origin:" value={questionnaireForSheet.dogOrigin} />}
-                                {questionnaireForSheet.rescueBackground && <DetailRow label="Rescue Background:" value={questionnaireForSheet.rescueBackground} />}
+                                <FullWidthDetailRow label="Main Problem:" value={questionnaireForSheet.mainProblem} />
+                                <FullWidthDetailRow label="Problem First Noticed:" value={questionnaireForSheet.problemTendencyFirstNoticed} />
+                                <FullWidthDetailRow label="Problem Frequency:" value={questionnaireForSheet.problemFrequencyDetails} />
+                                <FullWidthDetailRow label="Problem Recent Changes:" value={questionnaireForSheet.problemRecentChanges} />
+                                <FullWidthDetailRow label="Problem Anticipation:" value={questionnaireForSheet.problemAnticipationDetails} />
+                                <FullWidthDetailRow label="Dog Motivation (Problem):" value={questionnaireForSheet.dogMotivationForProblem} />
+                                <FullWidthDetailRow label="Problem Attempts:" value={questionnaireForSheet.problemAddressingAttempts} />
+                                <FullWidthDetailRow label="Ideal Outcome:" value={questionnaireForSheet.idealTrainingOutcome} />
+                                {questionnaireForSheet.otherHelpNeeded && <FullWidthDetailRow label="Other Help Needed:" value={questionnaireForSheet.otherHelpNeeded} />}
+                                {questionnaireForSheet.medicalHistory && <FullWidthDetailRow label="Medical History:" value={questionnaireForSheet.medicalHistory} />}
+                                {questionnaireForSheet.vetConsultationDetails && <FullWidthDetailRow label="Vet Consultation:" value={questionnaireForSheet.vetConsultationDetails} />}
+                                {questionnaireForSheet.dogOrigin && <FullWidthDetailRow label="Dog Origin:" value={questionnaireForSheet.dogOrigin} />}
+                                {questionnaireForSheet.rescueBackground && <FullWidthDetailRow label="Rescue Background:" value={questionnaireForSheet.rescueBackground} />}
                                 {questionnaireForSheet.dogAgeWhenAcquired && <DetailRow label="Age Acquired:" value={questionnaireForSheet.dogAgeWhenAcquired} />}
-                                {questionnaireForSheet.dietDetails && <DetailRow label="Diet:" value={questionnaireForSheet.dietDetails} />}
+                                {questionnaireForSheet.dietDetails && <FullWidthDetailRow label="Diet:" value={questionnaireForSheet.dietDetails} />}
                                 {questionnaireForSheet.foodMotivationLevel && <DetailRow label="Food Motivation:" value={questionnaireForSheet.foodMotivationLevel} />}
-                                {questionnaireForSheet.mealtimeRoutine && <DetailRow label="Mealtime Routine:" value={questionnaireForSheet.mealtimeRoutine} />}
-                                {questionnaireForSheet.treatRoutine && <DetailRow label="Treat Routine:" value={questionnaireForSheet.treatRoutine} />}
+                                {questionnaireForSheet.mealtimeRoutine && <FullWidthDetailRow label="Mealtime Routine:" value={questionnaireForSheet.mealtimeRoutine} />}
+                                {questionnaireForSheet.treatRoutine && <FullWidthDetailRow label="Treat Routine:" value={questionnaireForSheet.treatRoutine} />}
                                 {questionnaireForSheet.externalTreatsConsent && <DetailRow label="External Treats Consent:" value={questionnaireForSheet.externalTreatsConsent} />}
-                                {questionnaireForSheet.playEngagement && <DetailRow label="Play Engagement:" value={questionnaireForSheet.playEngagement} />}
-                                {questionnaireForSheet.affectionResponse && <DetailRow label="Affection Response:" value={questionnaireForSheet.affectionResponse} />}
-                                {questionnaireForSheet.exerciseRoutine && <DetailRow label="Exercise Routine:" value={questionnaireForSheet.exerciseRoutine} />}
+                                {questionnaireForSheet.playEngagement && <FullWidthDetailRow label="Play Engagement:" value={questionnaireForSheet.playEngagement} />}
+                                {questionnaireForSheet.affectionResponse && <FullWidthDetailRow label="Affection Response:" value={questionnaireForSheet.affectionResponse} />}
+                                {questionnaireForSheet.exerciseRoutine && <FullWidthDetailRow label="Exercise Routine:" value={questionnaireForSheet.exerciseRoutine} />}
                                 {questionnaireForSheet.muzzleUsage && <DetailRow label="Muzzle Usage:" value={questionnaireForSheet.muzzleUsage} />}
-                                {questionnaireForSheet.reactionToFamiliarPeople && <DetailRow label="Reaction to Familiar People:" value={questionnaireForSheet.reactionToFamiliarPeople} />}
-                                {questionnaireForSheet.reactionToUnfamiliarPeople && <DetailRow label="Reaction to Unfamiliar People:" value={questionnaireForSheet.reactionToUnfamiliarPeople} />}
+                                {questionnaireForSheet.reactionToFamiliarPeople && <FullWidthDetailRow label="Reaction to Familiar People:" value={questionnaireForSheet.reactionToFamiliarPeople} />}
+                                {questionnaireForSheet.reactionToUnfamiliarPeople && <FullWidthDetailRow label="Reaction to Unfamiliar People:" value={questionnaireForSheet.reactionToUnfamiliarPeople} />}
                                 {questionnaireForSheet.housetrainedStatus && <DetailRow label="Housetrained Status:" value={questionnaireForSheet.housetrainedStatus} />}
-                                {questionnaireForSheet.activitiesAsideFromWalks && <DetailRow label="Other Activities:" value={questionnaireForSheet.activitiesAsideFromWalks} />}
-                                {questionnaireForSheet.dogLikes && <DetailRow label="Dog Likes:" value={questionnaireForSheet.dogLikes} />}
-                                <DetailRow label="Dog Challenges:" value={questionnaireForSheet.dogChallenges} />
-                                <DetailRow label="Positive Reinforcement:" value={questionnaireForSheet.positiveReinforcementMethods} />
-                                <DetailRow label="Favorite Rewards:" value={questionnaireForSheet.favoriteRewards} />
-                                <DetailRow label="Correction Methods:" value={questionnaireForSheet.correctionMethods} />
-                                <DetailRow label="Correction Effects:" value={questionnaireForSheet.correctionEffects} />
-                                <DetailRow label="Previous Training:" value={questionnaireForSheet.previousProfessionalTraining} />
-                                <DetailRow label="Previous Methods Used:" value={questionnaireForSheet.previousTrainingMethodsUsed} />
-                                <DetailRow label="Previous Training Results:" value={questionnaireForSheet.previousTrainingExperienceResults} />
+                                {questionnaireForSheet.activitiesAsideFromWalks && <FullWidthDetailRow label="Other Activities:" value={questionnaireForSheet.activitiesAsideFromWalks} />}
+                                {questionnaireForSheet.dogLikes && <FullWidthDetailRow label="Dog Likes:" value={questionnaireForSheet.dogLikes} />}
+                                <FullWidthDetailRow label="Dog Challenges:" value={questionnaireForSheet.dogChallenges} />
+                                <FullWidthDetailRow label="Positive Reinforcement:" value={questionnaireForSheet.positiveReinforcementMethods} />
+                                <FullWidthDetailRow label="Favorite Rewards:" value={questionnaireForSheet.favoriteRewards} />
+                                <FullWidthDetailRow label="Correction Methods:" value={questionnaireForSheet.correctionMethods} />
+                                <FullWidthDetailRow label="Correction Effects:" value={questionnaireForSheet.correctionEffects} />
+                                <FullWidthDetailRow label="Previous Training:" value={questionnaireForSheet.previousProfessionalTraining} />
+                                <FullWidthDetailRow label="Previous Methods Used:" value={questionnaireForSheet.previousTrainingMethodsUsed} />
+                                <FullWidthDetailRow label="Previous Training Results:" value={questionnaireForSheet.previousTrainingExperienceResults} />
                                 {questionnaireForSheet.sociabilityWithDogs && <DetailRow label="Sociability (Dogs):" value={questionnaireForSheet.sociabilityWithDogs} />}
                                 {questionnaireForSheet.sociabilityWithPeople && <DetailRow label="Sociability (People):" value={questionnaireForSheet.sociabilityWithPeople} />}
-                                {questionnaireForSheet.additionalInformation && <DetailRow label="Additional Info:" value={questionnaireForSheet.additionalInformation} />}
-                                {questionnaireForSheet.timeDedicatedToTraining && <DetailRow label="Time for Training:" value={questionnaireForSheet.timeDedicatedToTraining} />}
+                                {questionnaireForSheet.additionalInformation && <FullWidthDetailRow label="Additional Info:" value={questionnaireForSheet.additionalInformation} />}
+                                {questionnaireForSheet.timeDedicatedToTraining && <FullWidthDetailRow label="Time for Training:" value={questionnaireForSheet.timeDedicatedToTraining} />}
                                 {questionnaireForSheet.submissionDate && <DetailRow label="Submitted:" value={isValid(parseISO(questionnaireForSheet.submissionDate)) ? format(parseISO(questionnaireForSheet.submissionDate), 'PPP p') : questionnaireForSheet.submissionDate} />}
                             </div>
                         )}
