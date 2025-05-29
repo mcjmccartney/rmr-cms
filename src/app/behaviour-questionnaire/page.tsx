@@ -18,7 +18,76 @@ import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-// Removed useSearchParams as it's no longer needed for clientId from URL
+
+// API function to submit behaviour questionnaire
+const addClientAndBehaviourQuestionnaireToFirestore = async (data: BehaviourQuestionnaireFormValues) => {
+  const response = await fetch('/api/public-intake', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'behaviour-questionnaire', data }),
+  });
+  if (!response.ok) throw new Error('Failed to submit behaviour questionnaire');
+  return response.json();
+};
+
+type BehaviourQuestionnaireFormValues = {
+  ownerFirstName: string;
+  ownerLastName: string;
+  contactEmail: string;
+  contactNumber: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  country: string;
+  postcode: string;
+  howHeardAboutServices?: string;
+  dogName: string;
+  dogAge: string;
+  dogSex: string;
+  dogBreed: string;
+  neuteredSpayedDetails: string;
+  mainProblem: string;
+  problemTendencyFirstNoticed: string;
+  problemFrequencyDetails: string;
+  problemRecentChanges: string;
+  problemAnticipationDetails: string;
+  dogMotivationForProblem: string;
+  problemAddressingAttempts: string;
+  idealTrainingOutcome: string;
+  otherHelpNeeded?: string;
+  medicalHistory?: string;
+  vetConsultationDetails?: string;
+  dogOrigin?: string;
+  rescueBackground?: string;
+  dogAgeWhenAcquired?: string;
+  dietDetails?: string;
+  foodMotivationLevel?: string;
+  mealtimeRoutine?: string;
+  treatRoutine?: string;
+  externalTreatsConsent?: string;
+  playEngagement?: string;
+  affectionResponse?: string;
+  exerciseRoutine?: string;
+  muzzleUsage?: string;
+  reactionToFamiliarPeople?: string;
+  reactionToUnfamiliarPeople?: string;
+  housetrainedStatus?: string;
+  activitiesAsideFromWalks?: string;
+  dogLikes?: string;
+  dogChallenges?: string;
+  positiveReinforcementMethods?: string;
+  favoriteRewards?: string;
+  correctionMethods?: string;
+  correctionEffects?: string;
+  previousProfessionalTraining?: string;
+  previousTrainingMethodsUsed?: string;
+  previousTrainingExperienceResults?: string;
+  sociabilityWithDogs?: string;
+  sociabilityWithPeople?: string;
+  additionalInformation?: string;
+  timeDedicatedToTraining?: string;
+  submissionDate: string;
+};
 
 const addressSchema = z.object({
   addressLine1: z.string().min(1, "Address Line 1 is required."),

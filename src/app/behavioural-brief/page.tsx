@@ -19,6 +19,31 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
+// API function to submit behavioural brief
+const addClientAndBriefToFirestore = async (data: BehaviouralBriefFormValues) => {
+  const response = await fetch('/api/public-intake', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'behavioural-brief', data }),
+  });
+  if (!response.ok) throw new Error('Failed to submit behavioural brief');
+  return response.json();
+};
+
+type BehaviouralBriefFormValues = {
+  ownerFirstName: string;
+  ownerLastName: string;
+  contactEmail: string;
+  contactNumber: string;
+  postcode: string;
+  dogName: string;
+  dogSex: 'Male' | 'Female' | '';
+  dogBreed: string;
+  lifeWithDogAndHelpNeeded: string;
+  bestOutcome: string;
+  idealSessionTypes?: string[];
+  submissionDate: string;
+};
 
 const behaviouralBriefSchema = z.object({
   ownerFirstName: z.string().min(1, { message: "First Name is required." }),
