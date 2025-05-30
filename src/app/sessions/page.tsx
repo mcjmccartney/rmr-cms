@@ -945,6 +945,8 @@ export default function SessionsPage() {
                         .map(session => {
                           const displayName = session.sessionType === 'Group'
                             ? 'Group Session'
+                            : session.sessionType === 'RMR Live'
+                            ? 'RMR Live'
                             : formatFullNameAndDogName(session.clientName, session.dogName);
                           return (
                           <div
@@ -1082,6 +1084,8 @@ export default function SessionsPage() {
                                 .map(session => {
                                   const displayName = session.sessionType === 'Group'
                                     ? 'Group Session'
+                                    : session.sessionType === 'RMR Live'
+                                    ? 'RMR Live'
                                     : formatFullNameAndDogName(session.clientName, session.dogName);
                                   return (
                                   <div
@@ -1187,7 +1191,13 @@ export default function SessionsPage() {
               <div className="py-4">
                 {selectedSessionForSheet && sessionSheetViewMode === 'sessionInfo' && (
                     <>
-                        <DetailRow label="Client:" value={formatFullNameAndDogName(selectedSessionForSheet.clientName, selectedSessionForSheet.dogName)} />
+                        <DetailRow label="Client:" value={
+                          selectedSessionForSheet.sessionType === 'Group'
+                            ? 'Group Session'
+                            : selectedSessionForSheet.sessionType === 'RMR Live'
+                            ? 'RMR Live'
+                            : formatFullNameAndDogName(selectedSessionForSheet.clientName, selectedSessionForSheet.dogName)
+                        } />
                         <DetailRow label="Date:" value={(() => {
                           const sessionDate = parseISO(selectedSessionForSheet.date);
                           return isValid(sessionDate) ? format(sessionDate, 'dd/MM/yyyy') : 'Invalid Date';
@@ -1428,7 +1438,13 @@ export default function SessionsPage() {
           </AlertDialogHeader>
           <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the session
-              with {sessionToDelete ? formatFullNameAndDogName(sessionToDelete.clientName || '', sessionToDelete.dogName) : ''} on {sessionToDelete && isValid(parseISO(sessionToDelete.date)) ? format(parseISO(sessionToDelete.date), 'dd/MM/yyyy') : ''}.
+              with {sessionToDelete ? (
+                sessionToDelete.sessionType === 'Group'
+                  ? 'Group Session'
+                  : sessionToDelete.sessionType === 'RMR Live'
+                  ? 'RMR Live'
+                  : formatFullNameAndDogName(sessionToDelete.clientName || '', sessionToDelete.dogName)
+              ) : ''} on {sessionToDelete && isValid(parseISO(sessionToDelete.date)) ? format(parseISO(sessionToDelete.date), 'dd/MM/yyyy') : ''}.
           </AlertDialogDescription>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => { setSessionToDelete(null); setIsSessionDeleteDialogOpen(false); }} disabled={isSubmittingSheet}>

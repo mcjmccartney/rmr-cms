@@ -612,7 +612,13 @@ export default function HomePage() {
                     setIsSessionSheetOpen(true);
                   }}
                 >
-                  {formatTimeWithoutSeconds(session.time)} - {formatFullNameAndDogName(session.clientName, session.dogName)}
+                  {formatTimeWithoutSeconds(session.time)} - {
+                    session.sessionType === 'Group'
+                      ? 'Group Session'
+                      : session.sessionType === 'RMR Live'
+                      ? 'RMR Live'
+                      : formatFullNameAndDogName(session.clientName, session.dogName)
+                  }
                 </Badge>
               ))}
             </div>
@@ -953,7 +959,13 @@ export default function HomePage() {
                 <div className="py-4">
                 {selectedSessionForSheet && sessionSheetViewMode === 'sessionInfo' && (
                 <>
-                    <DetailRow label="Client:" value={formatFullNameAndDogName(selectedSessionForSheet.clientName, selectedSessionForSheet.dogName)} />
+                    <DetailRow label="Client:" value={
+                      selectedSessionForSheet.sessionType === 'Group'
+                        ? 'Group Session'
+                        : selectedSessionForSheet.sessionType === 'RMR Live'
+                        ? 'RMR Live'
+                        : formatFullNameAndDogName(selectedSessionForSheet.clientName, selectedSessionForSheet.dogName)
+                    } />
                     <DetailRow label="Date:" value={isValid(parseISO(selectedSessionForSheet.date)) ? format(parseISO(selectedSessionForSheet.date), 'PPP') : 'Invalid Date'} />
                     <DetailRow label="Time:" value={selectedSessionForSheet.time} />
                     <DetailRow label="Session Type:" value={selectedSessionForSheet.sessionType} />
