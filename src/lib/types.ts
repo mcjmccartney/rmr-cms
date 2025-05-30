@@ -130,8 +130,10 @@ export interface Session {
   clientId: string;
   clientName: string; // Denormalized for easier display
   dogName?: string;    // Denormalized for easier display
-  date: string; // Should be in 'yyyy-MM-dd' format
-  time: string; // Should be in 'HH:MM' (24-hour) format
+  email?: string;      // Email for matching to clients
+  booking?: string;    // Combined date/time timestamp from database
+  date: string; // Should be in 'yyyy-MM-dd' format (extracted from booking)
+  time: string; // Should be in 'HH:MM' (24-hour) format (extracted from booking)
   sessionType: string;
   amount?: number;
   createdAt?: Date | string; // ISO string/Date for client-side

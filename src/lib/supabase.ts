@@ -409,7 +409,7 @@ export interface Database {
 // Configuration check is now at the top of the file
 
 // Browser client for client-side operations
-export const createSupabaseBrowserClient = async () => {
+export const createSupabaseBrowserClient = () => {
   return getSupabaseClient();
 };
 

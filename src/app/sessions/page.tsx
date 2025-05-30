@@ -6,7 +6,7 @@ import type { Session, Client, BehaviouralBrief, BehaviourQuestionnaire } from '
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { format, parseISO, isValid, parse } from 'date-fns';
-import { Edit, Trash2, Clock, CalendarDays as CalendarIconLucide, DollarSign, MoreHorizontal, Loader2, Info, Tag as TagIcon, ChevronLeft, CalendarPlus, Search } from 'lucide-react';
+import { Edit, Trash2, Clock, CalendarDays as CalendarIconLucide, DollarSign, MoreHorizontal, Loader2, Info, Tag as TagIcon, ChevronLeft, CalendarPlus, Search, X, Check } from 'lucide-react';
 import Image from 'next/image';
 import {
   Sheet,
@@ -85,27 +85,60 @@ const addSession = async (sessionData: any) => {
 };
 
 const updateSession = async (id: string, updateData: any) => {
-  const response = await fetch(`/api/sessions/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(updateData),
-  });
-  if (!response.ok) throw new Error('Failed to update session');
-  return response.json();
+  try {
+    const response = await fetch(`/api/sessions/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updateData),
+    });
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.warn(`Session with ID ${id} not found`);
+        throw new Error('Session not found');
+      }
+      throw new Error(`Failed to update session: ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error updating session:', error);
+    throw error;
+  }
 };
 
 const deleteSession = async (id: string) => {
-  const response = await fetch(`/api/sessions/${id}`, {
-    method: 'DELETE',
-  });
-  if (!response.ok) throw new Error('Failed to delete session');
-  return response.json();
+  try {
+    const response = await fetch(`/api/sessions/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.warn(`Session with ID ${id} not found`);
+        throw new Error('Session not found');
+      }
+      throw new Error(`Failed to delete session: ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error deleting session:', error);
+    throw error;
+  }
 };
 
 const getClientById = async (id: string) => {
-  const response = await fetch(`/api/clients/${id}`);
-  if (!response.ok) throw new Error('Failed to fetch client');
-  return response.json();
+  try {
+    const response = await fetch(`/api/clients/${id}`);
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.warn(`Client with ID ${id} not found`);
+        return null;
+      }
+      throw new Error(`Failed to fetch client: ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching client:', error);
+    return null;
+  }
 };
 
 const getBehaviouralBrief = async (id: string) => {
@@ -304,14 +337,23 @@ export default function SessionsPage() {
       setIsLoadingClientForSession(true);
       getClientById(selectedSessionForSheet.clientId)
         .then(client => {
-          setClientForSelectedSession(client);
+          if (client) {
+            setClientForSelectedSession(client);
+          } else {
+            // Client not found, but don't show error toast - just log it
+            console.warn(`Client not found for session ${selectedSessionForSheet.id}`);
+            setClientForSelectedSession(null);
+          }
           setIsLoadingClientForSession(false);
         })
         .catch(error => {
           console.error("Error fetching client for session:", error);
           setClientForSelectedSession(null);
           setIsLoadingClientForSession(false);
-          toast({ title: "Error", description: "Could not load client details for this session.", variant: "destructive" });
+          // Only show toast for actual errors, not missing clients
+          if (!error.message.includes('not found')) {
+            toast({ title: "Error", description: "Could not load client details for this session.", variant: "destructive" });
+          }
         });
     } else {
       setClientForSelectedSession(null);
@@ -366,27 +408,9 @@ export default function SessionsPage() {
         const supabaseClients = supabaseClientsResponse.data || [];
 
         setSessions(supabaseSessions.sort((a, b) => {
-            // Try to parse as ISO date first, then as dd/MM/yyyy format
-            let dateA = parseISO(a.date);
-            if (!isValid(dateA)) {
-              const partsA = a.date.split('/');
-              if (partsA.length === 3) {
-                const day = parseInt(partsA[0], 10);       // First part is day
-                const month = parseInt(partsA[1], 10) - 1; // Second part is month
-                const year = parseInt(partsA[2], 10);      // Third part is year
-                dateA = new Date(year, month, day);
-              }
-            }
-            let dateB = parseISO(b.date);
-            if (!isValid(dateB)) {
-              const partsB = b.date.split('/');
-              if (partsB.length === 3) {
-                const day = parseInt(partsB[0], 10);       // First part is day
-                const month = parseInt(partsB[1], 10) - 1; // Second part is month
-                const year = parseInt(partsB[2], 10);      // Third part is year
-                dateB = new Date(year, month, day);
-              }
-            }
+            // Parse YYYY-MM-DD format dates
+            const dateA = parseISO(a.date);
+            const dateB = parseISO(b.date);
 
             if (!isValid(dateA) && !isValid(dateB)) return 0;
             if (!isValid(dateA)) return 1;
@@ -444,11 +468,14 @@ export default function SessionsPage() {
       const newSession = await addSession(sessionData);
       if (newSession) {
         setSessions(prevSessions => [...prevSessions, newSession].sort((a, b) => {
+        // Parse YYYY-MM-DD format dates
         const dateA = parseISO(a.date);
         const dateB = parseISO(b.date);
+
         if (!isValid(dateA) && !isValid(dateB)) return 0;
         if (!isValid(dateA)) return 1;
         if (!isValid(dateB)) return -1;
+
         const dateTimeA = isValid(dateA) ? new Date(`${format(dateA, 'yyyy-MM-dd')}T${a.time || '00:00'}:00`) : new Date(0);
         const dateTimeB = isValid(dateB) ? new Date(`${format(dateB, 'yyyy-MM-dd')}T${b.time || '00:00'}:00`) : new Date(0);
 
@@ -501,13 +528,20 @@ export default function SessionsPage() {
               }
             : s
         ).sort((a, b) => {
+             // Parse YYYY-MM-DD format dates
              const dateA = parseISO(a.date);
              const dateB = parseISO(b.date);
+
              if (!isValid(dateA) && !isValid(dateB)) return 0;
              if (!isValid(dateA)) return 1;
              if (!isValid(dateB)) return -1;
-             const dateTimeA = new Date(`${format(dateA, 'yyyy-MM-dd')}T${a.time || '00:00'}:00`);
-             const dateTimeB = new Date(`${format(dateB, 'yyyy-MM-dd')}T${b.time || '00:00'}:00`);
+
+             const dateTimeA = isValid(dateA) ? new Date(`${format(dateA, 'yyyy-MM-dd')}T${a.time || '00:00'}:00`) : new Date(0);
+             const dateTimeB = isValid(dateB) ? new Date(`${format(dateB, 'yyyy-MM-dd')}T${b.time || '00:00'}:00`) : new Date(0);
+
+             if (!isValid(dateTimeA) && !isValid(dateTimeB)) return 0;
+             if (!isValid(dateTimeA)) return 1;
+             if (!isValid(dateTimeB)) return -1;
              return dateTimeB.getTime() - dateTimeA.getTime();
         })
       );
@@ -542,21 +576,33 @@ export default function SessionsPage() {
     });
   }, [sessions, searchTerm]);
 
+  const groupSessionsByYear = (sessionsToGroup: Session[]) => {
+    const currentYear = new Date().getFullYear();
+
+    return sessionsToGroup.reduce((acc, session) => {
+      const sessionDate = parseISO(session.date);
+      if (!isValid(sessionDate)) return acc;
+
+      const year = sessionDate.getFullYear();
+      const monthYear = format(sessionDate, 'MMMM yyyy');
+
+      if (!acc[year]) {
+        acc[year] = {};
+      }
+      if (!acc[year][monthYear]) {
+        acc[year][monthYear] = [];
+      }
+      acc[year][monthYear].push(session);
+      return acc;
+    }, {} as Record<number, GroupedSessions>);
+  };
+
   const groupSessionsByMonth = (sessionsToGroup: Session[]): GroupedSessions => {
     return sessionsToGroup.reduce((acc, session) => {
-      // Try to parse as ISO date first, then as dd/MM/yyyy format
-      let sessionDate = parseISO(session.date);
-      if (!isValid(sessionDate)) {
-        // Parse dd/MM/yyyy format (British format)
-        const parts = session.date.split('/');
-        if (parts.length === 3) {
-          const day = parseInt(parts[0], 10);       // First part is day
-          const month = parseInt(parts[1], 10) - 1; // Second part is month (0-indexed)
-          const year = parseInt(parts[2], 10);      // Third part is year
-          sessionDate = new Date(year, month, day);
-        }
-      }
+      // Parse YYYY-MM-DD format dates
+      const sessionDate = parseISO(session.date);
       if (!isValid(sessionDate)) return acc;
+
       const monthYear = format(sessionDate, 'MMMM yyyy');
       if (!acc[monthYear]) {
         acc[monthYear] = [];
@@ -586,17 +632,8 @@ export default function SessionsPage() {
       toast({
         title: "Session Deleted",
         description: `Session with ${formatFullNameAndDogName(sessionToDelete.clientName || '', sessionToDelete.dogName)} on ${(() => {
-          let sessionDate = parseISO(sessionToDelete.date);
-          if (!isValid(sessionDate)) {
-            const parts = sessionToDelete.date.split('/');
-            if (parts.length === 3) {
-              const day = parseInt(parts[0], 10);       // First part is day
-              const month = parseInt(parts[1], 10) - 1; // Second part is month
-              const year = parseInt(parts[2], 10);      // Third part is year
-              sessionDate = new Date(year, month, day);
-            }
-          }
-          return isValid(sessionDate) ? format(sessionDate, 'PPP') : '';
+          const sessionDate = parseISO(sessionToDelete.date);
+          return isValid(sessionDate) ? format(sessionDate, 'dd/MM/yyyy') : '';
         })()} has been deleted.`,
       });
       if (selectedSessionForSheet && selectedSessionForSheet.id === sessionToDelete.id) {
@@ -615,7 +652,17 @@ export default function SessionsPage() {
   };
 
 
+  const currentYear = new Date().getFullYear();
+  const groupedByYear = groupSessionsByYear(filteredSessions);
   const groupedSessions = groupSessionsByMonth(filteredSessions);
+
+  // Separate current year and previous years
+  const currentYearSessions = groupedByYear[currentYear] || {};
+  const previousYears = Object.keys(groupedByYear)
+    .map(Number)
+    .filter(year => year < currentYear)
+    .sort((a, b) => b - a); // Most recent previous years first
+
   const sortedMonthKeys = Object.keys(groupedSessions).sort((a, b) => {
     try {
       const dateA = parse(a, 'MMMM yyyy', new Date());
@@ -626,6 +673,12 @@ export default function SessionsPage() {
       console.error("Error parsing month keys for sorting:", a, b, e);
       return 0;
     }
+  });
+
+  // Filter current year months
+  const currentYearMonths = sortedMonthKeys.filter(monthYear => {
+    const date = parse(monthYear, 'MMMM yyyy', new Date());
+    return isValid(date) && date.getFullYear() === currentYear;
   });
 
   return (
@@ -856,147 +909,272 @@ export default function SessionsPage() {
         <p className="text-muted-foreground text-center py-10">No sessions scheduled yet. Add a new session to get started.</p>
       )}
       {!isLoading && !error && sortedMonthKeys.length > 0 && (
-        <Accordion type="multiple" className="w-full space-y-0" defaultValue={sortedMonthKeys.length > 0 ? [sortedMonthKeys[0]] : []}>
-          {sortedMonthKeys.map((monthYear) => (
-            <AccordionItem value={monthYear} key={monthYear} className="bg-card shadow-sm rounded-md mb-2">
-              <AccordionTrigger className="text-lg hover:no-underline px-4 py-3 font-semibold">
-                {monthYear} ({groupedSessions[monthYear].length} sessions)
-              </AccordionTrigger>
-              <AccordionContent className="px-0">
-                <div className="space-y-0">
-                  {groupedSessions[monthYear]
-                    .sort((a, b) => {
-                        // Try to parse as ISO date first, then as dd/MM/yyyy format
-                        let dateA = parseISO(a.date);
-                        if (!isValid(dateA)) {
-                          const partsA = a.date.split('/');
-                          if (partsA.length === 3) {
-                            const day = parseInt(partsA[0], 10);       // First part is day
-                            const month = parseInt(partsA[1], 10) - 1; // Second part is month
-                            const year = parseInt(partsA[2], 10);      // Third part is year
-                            dateA = new Date(year, month, day);
-                          }
-                        }
-                        let dateB = parseISO(b.date);
-                        if (!isValid(dateB)) {
-                          const partsB = b.date.split('/');
-                          if (partsB.length === 3) {
-                            const day = parseInt(partsB[0], 10);       // First part is day
-                            const month = parseInt(partsB[1], 10) - 1; // Second part is month
-                            const year = parseInt(partsB[2], 10);      // Third part is year
-                            dateB = new Date(year, month, day);
-                          }
-                        }
+        <div className="w-full space-y-2">
+          {/* Current Year Sessions */}
+          {currentYearMonths.length > 0 && (
+            <Accordion type="multiple" className="w-full space-y-0" defaultValue={[`year-${currentYear}`]}>
+              <AccordionItem value={`year-${currentYear}`} className="bg-card shadow-sm rounded-md mb-2">
+                <AccordionTrigger className="text-xl hover:no-underline px-4 py-4 font-bold">
+                  {currentYear} ({Object.values(currentYearSessions).reduce((sum, sessions) => sum + sessions.length, 0)} sessions)
+                </AccordionTrigger>
+                <AccordionContent className="px-0">
+                  <Accordion type="multiple" className="w-full space-y-0 px-2" defaultValue={currentYearMonths.length > 0 ? [currentYearMonths[0]] : []}>
+                    {currentYearMonths.map((monthYear) => (
+                      <AccordionItem value={monthYear} key={monthYear} className="border-b border-border last:border-b-0">
+                        <AccordionTrigger className="text-lg hover:no-underline px-4 py-3 font-semibold hover:bg-muted/50">
+                          {monthYear} ({groupedSessions[monthYear].length} sessions)
+                        </AccordionTrigger>
+                  <AccordionContent className="px-0">
+                    <div className="space-y-0">
+                      {groupedSessions[monthYear]
+                        .sort((a, b) => {
+                            // Parse YYYY-MM-DD format dates - REVERSE ORDER (latest first)
+                            const dateA = parseISO(a.date);
+                            const dateB = parseISO(b.date);
 
-                        if (!isValid(dateA) || !isValid(dateB)) return 0;
-                        const dayDiff = dateA.getDate() - dateB.getDate();
-                        if (dayDiff !== 0) return dayDiff;
+                            if (!isValid(dateA) || !isValid(dateB)) return 0;
+                            const dayDiff = dateB.getDate() - dateA.getDate(); // Reversed
+                            if (dayDiff !== 0) return dayDiff;
 
-                        try {
-                            const timeA = parse(a.time, 'HH:mm', new Date());
-                            const timeB = parse(b.time, 'HH:mm', new Date());
-                            return timeA.getTime() - timeB.getTime();
-                        } catch { return 0; }
-                    })
-                    .map(session => {
-                      const displayName = formatFullNameAndDogName(session.clientName, session.dogName);
-                      return (
-                      <div
-                        key={session.id}
-                        className="py-3 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSessionClick(session)}
-                      >
-                        <div className="flex justify-between items-center px-4">
-                           <div className="flex items-center gap-3 flex-grow">
-                             <Image
-                                src="https://iili.io/34300ox.md.jpg"
-                                alt="RMR Logo"
-                                width={32}
-                                height={32}
-                                className="rounded-md"
-                                data-ai-hint="company logo"
-                              />
-                            <div>
-                               <h3 className="font-semibold text-sm">{displayName}</h3>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                    {(() => {
-                                      let sessionDate = parseISO(session.date);
-                                      if (!isValid(sessionDate)) {
-                                        const parts = session.date.split('/');
-                                        if (parts.length === 3) {
-                                          const day = parseInt(parts[0], 10);       // First part is day
-                                          const month = parseInt(parts[1], 10) - 1; // Second part is month
-                                          const year = parseInt(parts[2], 10);      // Third part is year
-                                          sessionDate = new Date(year, month, day);
-                                        }
-                                      }
-                                      return isValid(sessionDate) && (
+                            try {
+                                const timeA = parse(a.time, 'HH:mm', new Date());
+                                const timeB = parse(b.time, 'HH:mm', new Date());
+                                return timeB.getTime() - timeA.getTime(); // Reversed
+                            } catch { return 0; }
+                        })
+                        .map(session => {
+                          const displayName = session.sessionType === 'Group'
+                            ? 'Group Session'
+                            : formatFullNameAndDogName(session.clientName, session.dogName);
+                          return (
+                          <div
+                            key={session.id}
+                            className="py-3 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/50"
+                            onClick={() => handleSessionClick(session)}
+                          >
+                            <div className="flex justify-between items-center px-4">
+                               <div className="flex items-center gap-3 flex-grow">
+                                 <Image
+                                    src="https://iili.io/34300ox.md.jpg"
+                                    alt="RMR Logo"
+                                    width={32}
+                                    height={32}
+                                    className="rounded-md"
+                                    data-ai-hint="company logo"
+                                  />
+                                <div>
+                                   <h3 className="font-semibold text-sm">{displayName}</h3>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                         <span className="flex items-center">
-                                          {format(sessionDate, 'dd/MM/yyyy')}
+                                          {(() => {
+                                            const sessionDate = parseISO(session.date);
+                                            return isValid(sessionDate) ? format(sessionDate, 'dd/MM/yyyy') : session.date;
+                                          })()}
                                         </span>
-                                      );
-                                    })()}
-                                    {session.time && <span className="sm:inline">•</span>}
-                                    {session.time && (
-                                        <span className="flex items-center">
-                                          {formatTimeWithoutSeconds(session.time)}
-                                        </span>
-                                    )}
-                                    {session.amount !== undefined && <span className="sm:inline">•</span>}
-                                    {session.amount !== undefined && (
-                                        <span className="flex items-center">
-                                            £{session.amount.toFixed(2)}
-                                        </span>
-                                    )}
+                                        {session.time && <span className="sm:inline">•</span>}
+                                        {session.time && (
+                                            <span className="flex items-center">
+                                              {formatTimeWithoutSeconds(session.time)}
+                                            </span>
+                                        )}
+                                        {session.amount !== undefined && <span className="sm:inline">•</span>}
+                                        {session.amount !== undefined && (
+                                            <span className="flex items-center">
+                                                £{session.amount.toFixed(2)}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="default" className={cn("mt-1 whitespace-nowrap hidden sm:inline-flex")}>
+                                    {session.sessionType}
+                                </Badge>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                    <Button variant="ghost" className="h-8 w-8 p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
+                                      <span className="sr-only">Open menu</span>
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSessionClick(session) }}>
+                                      <Info className="mr-2 h-4 w-4" />
+                                      View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSessionToEdit(session);
+                                        setIsEditSessionSheetOpen(true);
+                                        setIsSessionSheetOpen(false);
+                                    }}>
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit Session
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:bg-destructive focus:text-destructive-foreground data-[highlighted]:bg-destructive data-[highlighted]:text-destructive-foreground"
+                                      onClick={(e) => { e.stopPropagation(); handleDeleteSessionRequest(session); }}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete Session
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="default" className={cn("mt-1 whitespace-nowrap hidden sm:inline-flex")}>
-                                {session.sessionType}
-                            </Badge>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <Button variant="ghost" className="h-8 w-8 p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
-                                  <span className="sr-only">Open menu</span>
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSessionClick(session) }}>
-                                  <Info className="mr-2 h-4 w-4" />
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSessionToEdit(session);
-                                    setIsEditSessionSheetOpen(true);
-                                    setIsSessionSheetOpen(false);
-                                }}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit Session
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-destructive focus:bg-destructive focus:text-destructive-foreground data-[highlighted]:bg-destructive data-[highlighted]:text-destructive-foreground"
-                                  onClick={(e) => { e.stopPropagation(); handleDeleteSessionRequest(session); }}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete Session
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+                        );
+                        })}
                         </div>
-                      </div>
-                    );
-                    })}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                  </Accordion>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          )}
+
+          {/* Previous Years Sessions */}
+          {previousYears.map(year => {
+            const yearSessions = groupedByYear[year];
+            const totalYearSessions = Object.values(yearSessions).reduce((sum, sessions) => sum + sessions.length, 0);
+            const yearMonths = Object.keys(yearSessions).sort((a, b) => {
+              const dateA = parse(a, 'MMMM yyyy', new Date());
+              const dateB = parse(b, 'MMMM yyyy', new Date());
+              if (!isValid(dateA) || !isValid(dateB)) return 0;
+              return dateB.getTime() - dateA.getTime();
+            });
+
+            return (
+              <Accordion key={year} type="multiple" className="w-full space-y-0">
+                <AccordionItem value={`year-${year}`} className="bg-card shadow-sm rounded-md mb-2">
+                  <AccordionTrigger className="text-xl hover:no-underline px-4 py-4 font-bold">
+                    {year} ({totalYearSessions} sessions)
+                  </AccordionTrigger>
+                  <AccordionContent className="px-0">
+                    <Accordion type="multiple" className="w-full space-y-0 px-2">
+                      {yearMonths.map((monthYear) => (
+                        <AccordionItem value={monthYear} key={monthYear} className="border-b border-border last:border-b-0">
+                          <AccordionTrigger className="text-lg hover:no-underline px-4 py-3 font-semibold hover:bg-muted/50">
+                            {monthYear} ({yearSessions[monthYear].length} sessions)
+                          </AccordionTrigger>
+                          <AccordionContent className="px-0">
+                            <div className="space-y-0">
+                              {yearSessions[monthYear]
+                                .sort((a, b) => {
+                                    // Parse YYYY-MM-DD format dates - REVERSE ORDER (latest first)
+                                    const dateA = parseISO(a.date);
+                                    const dateB = parseISO(b.date);
+
+                                    if (!isValid(dateA) || !isValid(dateB)) return 0;
+                                    const dayDiff = dateB.getDate() - dateA.getDate(); // Reversed
+                                    if (dayDiff !== 0) return dayDiff;
+
+                                    try {
+                                        const timeA = parse(a.time, 'HH:mm', new Date());
+                                        const timeB = parse(b.time, 'HH:mm', new Date());
+                                        return timeB.getTime() - timeA.getTime(); // Reversed
+                                    } catch { return 0; }
+                                })
+                                .map(session => {
+                                  const displayName = session.sessionType === 'Group'
+                                    ? 'Group Session'
+                                    : formatFullNameAndDogName(session.clientName, session.dogName);
+                                  return (
+                                  <div
+                                    key={session.id}
+                                    className="py-3 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/50"
+                                    onClick={() => handleSessionClick(session)}
+                                  >
+                                    <div className="flex justify-between items-center px-4">
+                                       <div className="flex items-center gap-3 flex-grow">
+                                         <Image
+                                            src="https://iili.io/34300ox.md.jpg"
+                                            alt="RMR Logo"
+                                            width={32}
+                                            height={32}
+                                            className="rounded-md"
+                                            data-ai-hint="company logo"
+                                          />
+                                        <div>
+                                           <h3 className="font-semibold text-sm">{displayName}</h3>
+                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                                <span className="flex items-center">
+                                                  {(() => {
+                                                    const sessionDate = parseISO(session.date);
+                                                    return isValid(sessionDate) ? format(sessionDate, 'dd/MM/yyyy') : session.date;
+                                                  })()}
+                                                </span>
+                                                {session.time && <span className="sm:inline">•</span>}
+                                                {session.time && (
+                                                    <span className="flex items-center">
+                                                      {formatTimeWithoutSeconds(session.time)}
+                                                    </span>
+                                                )}
+                                                {session.amount !== undefined && <span className="sm:inline">•</span>}
+                                                {session.amount !== undefined && (
+                                                    <span className="flex items-center">
+                                                        £{session.amount.toFixed(2)}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="default" className={cn("mt-1 whitespace-nowrap hidden sm:inline-flex")}>
+                                            {session.sessionType}
+                                        </Badge>
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                            <Button variant="ghost" className="h-8 w-8 p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
+                                              <span className="sr-only">Open menu</span>
+                                              <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleSessionClick(session) }}>
+                                              <Info className="mr-2 h-4 w-4" />
+                                              View Details
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSessionToEdit(session);
+                                                setIsEditSessionSheetOpen(true);
+                                                setIsSessionSheetOpen(false);
+                                            }}>
+                                              <Edit className="mr-2 h-4 w-4" />
+                                              Edit Session
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                              className="text-destructive focus:bg-destructive focus:text-destructive-foreground data-[highlighted]:bg-destructive data-[highlighted]:text-destructive-foreground"
+                                              onClick={(e) => { e.stopPropagation(); handleDeleteSessionRequest(session); }}
+                                            >
+                                              <Trash2 className="mr-2 h-4 w-4" />
+                                              Delete Session
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                                })}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            );
+          })}
+        </div>
       )}
 
       <Sheet open={isSessionSheetOpen} onOpenChange={(isOpen) => {setIsSessionSheetOpen(isOpen); if(!isOpen) {setSelectedSessionForSheet(null); setClientForSelectedSession(null); setSessionSheetViewMode('sessionInfo'); }}}>
@@ -1011,17 +1189,8 @@ export default function SessionsPage() {
                     <>
                         <DetailRow label="Client:" value={formatFullNameAndDogName(selectedSessionForSheet.clientName, selectedSessionForSheet.dogName)} />
                         <DetailRow label="Date:" value={(() => {
-                          let sessionDate = parseISO(selectedSessionForSheet.date);
-                          if (!isValid(sessionDate)) {
-                            const parts = selectedSessionForSheet.date.split('/');
-                            if (parts.length === 3) {
-                              const day = parseInt(parts[0], 10);       // First part is day
-                              const month = parseInt(parts[1], 10) - 1; // Second part is month
-                              const year = parseInt(parts[2], 10);      // Third part is year
-                              sessionDate = new Date(year, month, day);
-                            }
-                          }
-                          return isValid(sessionDate) ? format(sessionDate, 'PPP') : 'Invalid Date';
+                          const sessionDate = parseISO(selectedSessionForSheet.date);
+                          return isValid(sessionDate) ? format(sessionDate, 'dd/MM/yyyy') : 'Invalid Date';
                         })()} />
                         <DetailRow label="Time:" value={formatTimeWithoutSeconds(selectedSessionForSheet.time)} />
                         <DetailRow label="Session Type:" value={selectedSessionForSheet.sessionType} />
@@ -1259,13 +1428,14 @@ export default function SessionsPage() {
           </AlertDialogHeader>
           <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the session
-              with {sessionToDelete ? formatFullNameAndDogName(sessionToDelete.clientName || '', sessionToDelete.dogName) : ''} on {sessionToDelete && isValid(parseISO(sessionToDelete.date)) ? format(parseISO(sessionToDelete.date), 'PPP') : ''}.
+              with {sessionToDelete ? formatFullNameAndDogName(sessionToDelete.clientName || '', sessionToDelete.dogName) : ''} on {sessionToDelete && isValid(parseISO(sessionToDelete.date)) ? format(parseISO(sessionToDelete.date), 'dd/MM/yyyy') : ''}.
           </AlertDialogDescription>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setSessionToDelete(null); setIsSessionDeleteDialogOpen(false); }} disabled={isSubmittingSheet}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => { setSessionToDelete(null); setIsSessionDeleteDialogOpen(false); }} disabled={isSubmittingSheet}>
+              <X className="h-4 w-4" />
+            </AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDeleteSession} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" disabled={isSubmittingSheet}>
-              {isSubmittingSheet && sessionToDelete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Confirm Delete
+              {isSubmittingSheet && sessionToDelete ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

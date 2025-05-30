@@ -15,7 +15,7 @@ async function getSessions() {
           dog_name
         )
       `)
-      .order('date', { ascending: false });
+      .order('booking', { ascending: false });
 
     if (error) {
       console.log('🔄 Join failed, trying simple select...', error.message);
@@ -23,7 +23,7 @@ async function getSessions() {
       const result = await supabase
         .from('sessions')
         .select('*')
-        .order('date', { ascending: false });
+        .order('booking', { ascending: false });
 
       rawData = result.data;
       error = result.error;
@@ -46,8 +46,10 @@ async function getSessions() {
       clientId: session.client_id,
       clientName: session.clients ? `${session.clients.owner_first_name} ${session.clients.owner_last_name}` : session.client_name || 'Unknown Client',
       dogName: session.clients?.dog_name || session.dog_name || null,
-      date: session.date,
-      time: session.time,
+      email: session.email,
+      booking: session.booking,
+      date: session.booking ? session.booking.split('T')[0] : null, // Extract date from booking timestamp
+      time: session.booking ? session.booking.split('T')[1]?.split('.')[0]?.substring(0, 5) : null, // Extract time from booking timestamp
       sessionType: session.session_type || 'General Session',
       amount: session.amount,
       createdAt: session.created_at,
@@ -66,12 +68,17 @@ async function addSession(session: any) {
   console.log('➕ Server: Adding session to Supabase...');
   try {
     // Transform the session data to match database schema
+    // Combine date and time into booking timestamp
+    const bookingTimestamp = session.date && session.time
+      ? `${session.date}T${session.time}:00.000Z`
+      : session.booking;
+
     const dbSession = {
       client_id: session.clientId,
       client_name: session.clientName,
       dog_name: session.dogName,
-      date: session.date,
-      time: session.time,
+      email: session.email,
+      booking: bookingTimestamp,
       session_type: session.sessionType,
       amount: session.amount,
     };
@@ -92,8 +99,10 @@ async function addSession(session: any) {
       clientId: rawData.client_id,
       clientName: rawData.client_name,
       dogName: rawData.dog_name,
-      date: rawData.date,
-      time: rawData.time,
+      email: rawData.email,
+      booking: rawData.booking,
+      date: rawData.booking ? rawData.booking.split('T')[0] : null,
+      time: rawData.booking ? rawData.booking.split('T')[1]?.split('.')[0]?.substring(0, 5) : null,
       sessionType: rawData.session_type,
       amount: rawData.amount,
       createdAt: rawData.created_at,
@@ -115,8 +124,15 @@ async function updateSession(id: string, updates: any) {
     if (updates.clientId !== undefined) dbUpdates.client_id = updates.clientId;
     if (updates.clientName !== undefined) dbUpdates.client_name = updates.clientName;
     if (updates.dogName !== undefined) dbUpdates.dog_name = updates.dogName;
-    if (updates.date !== undefined) dbUpdates.date = updates.date;
-    if (updates.time !== undefined) dbUpdates.time = updates.time;
+    if (updates.email !== undefined) dbUpdates.email = updates.email;
+
+    // Handle booking timestamp - combine date and time if provided separately
+    if (updates.date !== undefined && updates.time !== undefined) {
+      dbUpdates.booking = `${updates.date}T${updates.time}:00.000Z`;
+    } else if (updates.booking !== undefined) {
+      dbUpdates.booking = updates.booking;
+    }
+
     if (updates.sessionType !== undefined) dbUpdates.session_type = updates.sessionType;
     if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
 
