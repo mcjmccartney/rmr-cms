@@ -612,13 +612,20 @@ export default function HomePage() {
                     setIsSessionSheetOpen(true);
                   }}
                 >
-                  {formatTimeWithoutSeconds(session.time)} - {
-                    session.sessionType === 'Group'
-                      ? 'Group Session'
-                      : session.sessionType === 'RMR Live'
-                      ? 'RMR Live'
-                      : formatFullNameAndDogName(session.clientName, session.dogName)
-                  }
+                  {/* Mobile: Show only time */}
+                  <span className="sm:hidden">
+                    {formatTimeWithoutSeconds(session.time)}
+                  </span>
+                  {/* Desktop: Show time and client name */}
+                  <span className="hidden sm:inline">
+                    {formatTimeWithoutSeconds(session.time)} - {
+                      session.sessionType === 'Group'
+                        ? 'Group Session'
+                        : session.sessionType === 'RMR Live'
+                        ? 'RMR Live'
+                        : formatFullNameAndDogName(session.clientName, session.dogName)
+                    }
+                  </span>
                 </Badge>
               ))}
             </div>
