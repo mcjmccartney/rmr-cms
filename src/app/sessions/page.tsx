@@ -371,8 +371,8 @@ export default function SessionsPage() {
             if (!isValid(dateA)) {
               const partsA = a.date.split('/');
               if (partsA.length === 3) {
-                const month = parseInt(partsA[0], 10) - 1; // First part is month
-                const day = parseInt(partsA[1], 10);       // Second part is day
+                const day = parseInt(partsA[0], 10);       // First part is day
+                const month = parseInt(partsA[1], 10) - 1; // Second part is month
                 const year = parseInt(partsA[2], 10);      // Third part is year
                 dateA = new Date(year, month, day);
               }
@@ -381,8 +381,8 @@ export default function SessionsPage() {
             if (!isValid(dateB)) {
               const partsB = b.date.split('/');
               if (partsB.length === 3) {
-                const month = parseInt(partsB[0], 10) - 1; // First part is month
-                const day = parseInt(partsB[1], 10);       // Second part is day
+                const day = parseInt(partsB[0], 10);       // First part is day
+                const month = parseInt(partsB[1], 10) - 1; // Second part is month
                 const year = parseInt(partsB[2], 10);      // Third part is year
                 dateB = new Date(year, month, day);
               }
@@ -547,11 +547,11 @@ export default function SessionsPage() {
       // Try to parse as ISO date first, then as dd/MM/yyyy format
       let sessionDate = parseISO(session.date);
       if (!isValid(sessionDate)) {
-        // Parse MM/dd/yyyy format and swap to dd/MM/yyyy
+        // Parse dd/MM/yyyy format (British format)
         const parts = session.date.split('/');
         if (parts.length === 3) {
-          const month = parseInt(parts[0], 10) - 1; // First part is month (0-indexed)
-          const day = parseInt(parts[1], 10);       // Second part is day
+          const day = parseInt(parts[0], 10);       // First part is day
+          const month = parseInt(parts[1], 10) - 1; // Second part is month (0-indexed)
           const year = parseInt(parts[2], 10);      // Third part is year
           sessionDate = new Date(year, month, day);
         }
@@ -590,8 +590,8 @@ export default function SessionsPage() {
           if (!isValid(sessionDate)) {
             const parts = sessionToDelete.date.split('/');
             if (parts.length === 3) {
-              const month = parseInt(parts[0], 10) - 1; // First part is month
-              const day = parseInt(parts[1], 10);       // Second part is day
+              const day = parseInt(parts[0], 10);       // First part is day
+              const month = parseInt(parts[1], 10) - 1; // Second part is month
               const year = parseInt(parts[2], 10);      // Third part is year
               sessionDate = new Date(year, month, day);
             }
@@ -871,8 +871,8 @@ export default function SessionsPage() {
                         if (!isValid(dateA)) {
                           const partsA = a.date.split('/');
                           if (partsA.length === 3) {
-                            const month = parseInt(partsA[0], 10) - 1; // First part is month
-                            const day = parseInt(partsA[1], 10);       // Second part is day
+                            const day = parseInt(partsA[0], 10);       // First part is day
+                            const month = parseInt(partsA[1], 10) - 1; // Second part is month
                             const year = parseInt(partsA[2], 10);      // Third part is year
                             dateA = new Date(year, month, day);
                           }
@@ -881,8 +881,8 @@ export default function SessionsPage() {
                         if (!isValid(dateB)) {
                           const partsB = b.date.split('/');
                           if (partsB.length === 3) {
-                            const month = parseInt(partsB[0], 10) - 1; // First part is month
-                            const day = parseInt(partsB[1], 10);       // Second part is day
+                            const day = parseInt(partsB[0], 10);       // First part is day
+                            const month = parseInt(partsB[1], 10) - 1; // Second part is month
                             const year = parseInt(partsB[2], 10);      // Third part is year
                             dateB = new Date(year, month, day);
                           }
@@ -924,8 +924,8 @@ export default function SessionsPage() {
                                       if (!isValid(sessionDate)) {
                                         const parts = session.date.split('/');
                                         if (parts.length === 3) {
-                                          const month = parseInt(parts[0], 10) - 1; // First part is month
-                                          const day = parseInt(parts[1], 10);       // Second part is day
+                                          const day = parseInt(parts[0], 10);       // First part is day
+                                          const month = parseInt(parts[1], 10) - 1; // Second part is month
                                           const year = parseInt(parts[2], 10);      // Third part is year
                                           sessionDate = new Date(year, month, day);
                                         }
@@ -1015,8 +1015,8 @@ export default function SessionsPage() {
                           if (!isValid(sessionDate)) {
                             const parts = selectedSessionForSheet.date.split('/');
                             if (parts.length === 3) {
-                              const month = parseInt(parts[0], 10) - 1; // First part is month
-                              const day = parseInt(parts[1], 10);       // Second part is day
+                              const day = parseInt(parts[0], 10);       // First part is day
+                              const month = parseInt(parts[1], 10) - 1; // Second part is month
                               const year = parseInt(parts[2], 10);      // Third part is year
                               sessionDate = new Date(year, month, day);
                             }
