@@ -405,14 +405,7 @@ export default function FinancePage() {
                 <>
                   {/* Expected Revenue Section */}
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium">Revenue Target</h3>
-                      {!isEditingExpected && (
-                        <Button variant="ghost" size="sm" onClick={handleEditExpected}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
+                    <h3 className="font-medium">Revenue Target</h3>
 
                     {isEditingExpected ? (
                       <div className="space-y-3">
@@ -424,6 +417,7 @@ export default function FinancePage() {
                             value={editExpectedValue}
                             onChange={(e) => setEditExpectedValue(e.target.value)}
                             placeholder="0.00"
+                            autoFocus
                           />
                         </div>
                         <div className="flex gap-2">
@@ -436,7 +430,10 @@ export default function FinancePage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 border rounded-lg">
+                      <div
+                        className="p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={handleEditExpected}
+                      >
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm text-muted-foreground">Expected</p>
