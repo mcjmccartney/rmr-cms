@@ -118,6 +118,20 @@ CREATE TABLE IF NOT EXISTS expected_revenue_targets (
   UNIQUE(year, month)
 );
 
+-- Memberships table
+CREATE TABLE IF NOT EXISTS memberships (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  membership_type TEXT NOT NULL DEFAULT 'Standard',
+  start_date DATE NOT NULL,
+  end_date DATE,
+  monthly_fee DECIMAL(10,2) NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'cancelled', 'expired', 'paused')),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(contact_email);
 CREATE INDEX IF NOT EXISTS idx_sessions_client_id ON sessions(client_id);
@@ -125,6 +139,10 @@ CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date);
 CREATE INDEX IF NOT EXISTS idx_behavioural_briefs_client_id ON behavioural_briefs(client_id);
 CREATE INDEX IF NOT EXISTS idx_behaviour_questionnaires_client_id ON behaviour_questionnaires(client_id);
 CREATE INDEX IF NOT EXISTS idx_expected_revenue_targets_year_month ON expected_revenue_targets(year, month);
+CREATE INDEX IF NOT EXISTS idx_memberships_client_id ON memberships(client_id);
+CREATE INDEX IF NOT EXISTS idx_memberships_start_date ON memberships(start_date);
+CREATE INDEX IF NOT EXISTS idx_memberships_end_date ON memberships(end_date);
+CREATE INDEX IF NOT EXISTS idx_memberships_status ON memberships(status);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
@@ -132,6 +150,7 @@ ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE behavioural_briefs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE behaviour_questionnaires ENABLE ROW LEVEL SECURITY;
 ALTER TABLE expected_revenue_targets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE memberships ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for authenticated users (you can modify these based on your needs)
 -- For now, allowing all operations for authenticated users
@@ -161,3 +180,11 @@ CREATE POLICY "Allow anonymous insert for public forms" ON behavioural_briefs
 
 CREATE POLICY "Allow anonymous insert for public forms" ON behaviour_questionnaires
   FOR INSERT WITH CHECK (true);
+
+-- Expected revenue targets policies
+CREATE POLICY "Allow all operations for authenticated users on expected_revenue_targets" ON expected_revenue_targets
+  FOR ALL USING (auth.role() = 'authenticated');
+
+-- Memberships policies
+CREATE POLICY "Allow all operations for authenticated users on memberships" ON memberships
+  FOR ALL USING (auth.role() = 'authenticated');

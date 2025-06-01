@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import type { Session } from '@/lib/types';
+import type { Session, MembershipWithClient } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -21,7 +21,8 @@ import {
   X,
   ChevronLeft,
   Target,
-  Calendar
+  Calendar,
+  Users
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO, isValid, startOfMonth, endOfMonth, isSameMonth } from 'date-fns';
@@ -65,6 +66,9 @@ interface MonthData {
   variance: number;
   sessionCount: number;
   sessions: Session[];
+  membershipRevenue: number;
+  membershipCount: number;
+  memberships: MembershipWithClient[];
 }
 
 // API functions
@@ -81,6 +85,12 @@ const getExpectedRevenue = async (year?: number, month?: number) => {
 
   const response = await fetch(`/api/expected-revenue?${params}`);
   if (!response.ok) throw new Error('Failed to fetch expected revenue');
+  return response.json();
+};
+
+const getMemberships = async () => {
+  const response = await fetch('/api/memberships');
+  if (!response.ok) throw new Error('Failed to fetch memberships');
   return response.json();
 };
 
@@ -106,6 +116,7 @@ const saveExpectedRevenue = async (year: number, month: number, amount: number) 
 
 export default function FinancePage() {
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [memberships, setMemberships] = useState<MembershipWithClient[]>([]);
   const [expectedTargets, setExpectedTargets] = useState<ExpectedRevenueTarget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,11 +131,13 @@ export default function FinancePage() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [sessionsResponse, expectedResponse] = await Promise.all([
+        const [sessionsResponse, membershipsResponse, expectedResponse] = await Promise.all([
           getSessions(),
+          getMemberships(),
           getExpectedRevenue()
         ]);
         setSessions(sessionsResponse.data || []);
+        setMemberships(membershipsResponse || []);
         setExpectedTargets(expectedResponse || []);
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -164,7 +177,10 @@ export default function FinancePage() {
         expectedRevenue: expectedTarget?.expected_amount || 0,
         variance: 0,
         sessionCount: 0,
-        sessions: []
+        sessions: [],
+        membershipRevenue: 0,
+        membershipCount: 0,
+        memberships: []
       });
     }
 
@@ -184,27 +200,49 @@ export default function FinancePage() {
       }
     });
 
+    // Add membership data to months
+    memberships.forEach(membership => {
+      const membershipDate = parseISO(membership.date);
+      if (isValid(membershipDate) && membershipDate.getFullYear() === selectedYear) {
+        const month = membershipDate.getMonth();
+        const monthKey = `${selectedYear}-${month}`;
+        const monthData = monthsMap.get(monthKey);
+
+        if (monthData) {
+          monthData.membershipRevenue += membership.amount || 0;
+          monthData.membershipCount += 1;
+          monthData.memberships.push(membership);
+          // Add membership revenue to total actual revenue
+          monthData.actualRevenue += membership.amount || 0;
+        }
+      }
+    });
+
     // Calculate variance for each month
     monthsMap.forEach(monthData => {
       monthData.variance = monthData.actualRevenue - monthData.expectedRevenue;
     });
 
     return Array.from(monthsMap.values())
-      .filter(month => month.sessionCount > 0 || month.expectedRevenue > 0)
+      .filter(month => month.sessionCount > 0 || month.membershipCount > 0 || month.expectedRevenue > 0)
       .sort((a, b) => b.month - a.month); // Reverse chronological order
-  }, [paidSessions, selectedYear, expectedTargets]);
+  }, [paidSessions, memberships, selectedYear, expectedTargets]);
 
   // Calculate year totals
   const yearTotals = useMemo(() => {
     const totalActual = monthsData.reduce((sum, month) => sum + month.actualRevenue, 0);
     const totalExpected = monthsData.reduce((sum, month) => sum + month.expectedRevenue, 0);
     const totalSessions = monthsData.reduce((sum, month) => sum + month.sessionCount, 0);
+    const totalMemberships = monthsData.reduce((sum, month) => sum + month.membershipCount, 0);
+    const totalMembershipRevenue = monthsData.reduce((sum, month) => sum + month.membershipRevenue, 0);
 
     return {
       actualRevenue: totalActual,
       expectedRevenue: totalExpected,
       variance: totalActual - totalExpected,
-      sessionCount: totalSessions
+      sessionCount: totalSessions,
+      membershipCount: totalMemberships,
+      membershipRevenue: totalMembershipRevenue
     };
   }, [monthsData]);
 
@@ -217,8 +255,14 @@ export default function FinancePage() {
         years.add(sessionDate.getFullYear());
       }
     });
+    memberships.forEach(membership => {
+      const membershipDate = parseISO(membership.date);
+      if (isValid(membershipDate)) {
+        years.add(membershipDate.getFullYear());
+      }
+    });
     return Array.from(years).sort((a, b) => b - a);
-  }, [paidSessions]);
+  }, [paidSessions, memberships]);
 
   // Handlers
   const handleMonthClick = (month: MonthData) => {
@@ -288,7 +332,9 @@ export default function FinancePage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Financial Planning</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          Finance - £{yearTotals.actualRevenue.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </h1>
         <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
           <SelectTrigger className="w-32">
             <SelectValue />
@@ -300,28 +346,6 @@ export default function FinancePage() {
           </SelectContent>
         </Select>
       </div>
-
-      {/* Year Summary Card */}
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>{selectedYear} Financial Summary</span>
-            <Badge variant="outline" className="text-lg px-3 py-1">
-              £{yearTotals.actualRevenue.toFixed(0)}
-            </Badge>
-          </CardTitle>
-          <CardDescription>
-            {yearTotals.sessionCount} sessions •
-            Expected: £{yearTotals.expectedRevenue.toFixed(0)} •
-            Variance: <span className={cn(
-              "font-medium",
-              yearTotals.variance >= 0 ? "text-green-600" : "text-red-600"
-            )}>
-              {yearTotals.variance >= 0 ? '+' : ''}£{yearTotals.variance.toFixed(0)}
-            </span>
-          </CardDescription>
-        </CardHeader>
-      </Card>
 
       {/* Months List */}
       <div className="space-y-2">
@@ -347,6 +371,10 @@ export default function FinancePage() {
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {month.sessionCount} sessions
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {month.membershipCount} memberships
                       </span>
                       <span className="flex items-center gap-1">
                         <Target className="h-3 w-3" />
@@ -488,6 +516,58 @@ export default function FinancePage() {
                     </div>
                   )}
 
+                  {/* Membership Breakdown */}
+                  {selectedMonth.memberships.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="font-medium">Membership Revenue</h3>
+                      <div className="p-3 border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Monthly Memberships</p>
+                            <p className="text-sm text-muted-foreground">{selectedMonth.membershipCount} members</p>
+                          </div>
+                          <p className="font-medium">£{selectedMonth.membershipRevenue.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Memberships List */}
+                  {selectedMonth.memberships.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="font-medium">Memberships ({selectedMonth.memberships.length})</h3>
+                      <div className="space-y-2">
+                        {selectedMonth.memberships
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .map((membership) => (
+                            <div key={membership.id} className="p-3 border rounded-lg">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium text-sm">
+                                    {membership.clients?.[0]
+                                      ? `${membership.clients[0].owner_first_name} ${membership.clients[0].owner_last_name}`
+                                      : membership.client || 'Unknown Client'}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {isValid(parseISO(membership.date))
+                                      ? format(parseISO(membership.date), 'dd/MM/yyyy')
+                                      : membership.date
+                                    }
+                                  </p>
+                                  <Badge variant="outline" className="mt-1 text-xs">
+                                    Membership Payment
+                                  </Badge>
+                                </div>
+                                <p className="font-medium text-green-600">
+                                  £{membership.amount?.toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Sessions List */}
                   {selectedMonth.sessions.length > 0 && (
                     <div className="space-y-3">
@@ -527,9 +607,9 @@ export default function FinancePage() {
                     </div>
                   )}
 
-                  {selectedMonth.sessions.length === 0 && (
+                  {selectedMonth.sessions.length === 0 && selectedMonth.memberships.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
-                      No sessions found for this month
+                      No sessions or memberships found for this month
                     </div>
                   )}
                 </>

@@ -159,3 +159,46 @@ export interface Address {
   country: string;
   // Postcode is part of client.postcode, but can be shown as part of a full address display
 }
+
+export interface ExpectedRevenueTarget {
+  id: string;
+  year: number;
+  month: number;
+  expected_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Membership {
+  id: number;
+  email?: string; // Email to match with clients (optional)
+  client?: string; // Client name for surname matching (optional)
+  date: string; // Date in your table format
+  amount: number; // Monthly fee amount
+  created_at: string;
+  clients?: Client[]; // Optional joined client data (array because of join)
+}
+
+export interface MembershipWithClient extends Membership {
+  clients: Client[]; // Array because of Supabase join
+}
+
+export interface MonthlyMembershipData {
+  year: number;
+  month: number;
+  totalMembers: number;
+  newMembers: number;
+  cancelledMembers: number;
+  netChange: number;
+  monthlyRecurringRevenue: number;
+  growthPercentage: number;
+}
+
+export interface YearlyMembershipSummary {
+  year: number;
+  totalMembers: number;
+  totalMRR: number;
+  growthFromPreviousYear: number;
+  newMembersThisYear: number;
+  cancelledMembersThisYear: number;
+}

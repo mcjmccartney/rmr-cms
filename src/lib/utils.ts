@@ -45,3 +45,29 @@ export function formatPhoneNumber(phoneNumber?: string): string | undefined {
   }
   return trimmedNumber;
 }
+
+/**
+ * Formats a number as currency (GBP)
+ * @param amount - The amount to format
+ * @returns Formatted currency string
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+  }).format(amount);
+}
+
+/**
+ * Formats a date string to DD/MM/YYYY format (British format)
+ * @param dateString - Date string in YYYY-MM-DD format
+ * @returns Formatted date string
+ */
+export function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}

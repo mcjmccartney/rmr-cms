@@ -212,7 +212,6 @@ export default function SessionsPage() {
   const [isLoadingClientForSession, setIsLoadingClientForSession] = useState<boolean>(false);
   const [sessionSheetViewMode, setSessionSheetViewMode] = useState<'sessionInfo' | 'behaviouralBrief' | 'behaviourQuestionnaire'>('sessionInfo');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [isSearchExpanded, setIsSearchExpanded] = useState<boolean>(false);
   const [briefForSessionSheet, setBriefForSessionSheet] = useState<BehaviouralBrief | null>(null);
   const [isLoadingBriefForSessionSheet, setIsLoadingBriefForSessionSheet] = useState<boolean>(false);
   const [questionnaireForSessionSheet, setQuestionnaireForSessionSheet] = useState<BehaviourQuestionnaire | null>(null);
@@ -687,23 +686,7 @@ export default function SessionsPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Sessions</h1>
           <div className="flex items-center gap-2">
-            {/* Desktop search - hidden on mobile */}
-            <Input
-              type="search"
-              placeholder="Search sessions..."
-              className="hidden sm:block h-9 focus-visible:ring-0 focus-visible:ring-offset-0 w-full max-w-xs sm:max-w-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {/* Mobile search button - visible only on mobile */}
-            <Button
-              variant="outline"
-              size="icon"
-              className="sm:hidden h-9 w-9"
-              onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-            >
-              <Search className="h-4 w-4" />
-            </Button>
+
             <Sheet open={isAddSessionSheetOpen} onOpenChange={setIsAddSessionSheetOpen}>
           <SheetTrigger asChild>
             <Button className="h-10 w-10 min-w-10 max-w-10 flex-shrink-0">
@@ -878,19 +861,15 @@ export default function SessionsPage() {
         </Sheet>
           </div>
         </div>
-        {/* Mobile search bar - appears below buttons when expanded */}
-        {isSearchExpanded && (
-          <div className="sm:hidden">
-            <Input
-              type="search"
-              placeholder="Search sessions..."
-              className="h-9 focus-visible:ring-0 focus-visible:ring-offset-0 w-full"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              autoFocus
-            />
-          </div>
-        )}
+      {/* Search Input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search sessions by client, dog name, session type, date, or time..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10 focus-visible:ring-0 focus-visible:ring-offset-0"
+        />
       </div>
 
       {isLoading && (

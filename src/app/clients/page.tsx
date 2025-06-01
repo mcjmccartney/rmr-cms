@@ -2,13 +2,13 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import type { Client, Session, BehaviouralBrief, BehaviourQuestionnaire, Address, EditableClientData } from '@/lib/types';
+import type { Client, Session, BehaviouralBrief, BehaviourQuestionnaire, Address, EditableClientData, MembershipWithClient } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Loader2, Edit, Trash2, Info, FileQuestion, ArrowLeft, SquareCheck, CalendarDays as CalendarIconLucide, Filter, Check, UserPlus, Save, Eye, FileText, X } from 'lucide-react';
+import { Loader2, Edit, Trash2, Info, FileQuestion, ArrowLeft, SquareCheck, CalendarDays as CalendarIconLucide, Filter, Check, UserPlus, Save, Eye, FileText, X, Search } from 'lucide-react';
 import Image from 'next/image';
 import { format, parseISO, isValid } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn, formatFullNameAndDogName, formatPhoneNumber } from '@/lib/utils';
+import { cn, formatFullNameAndDogName, formatPhoneNumber, formatCurrency, formatDate } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { useForm, Controller, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -111,6 +111,17 @@ const getBehaviourQuestionnaire = async (questionnaireId: string) => {
   }
 };
 
+const getClientMemberships = async (clientId: string) => {
+  try {
+    const response = await fetch(`/api/memberships?clientId=${clientId}`);
+    if (!response.ok) throw new Error('Failed to fetch client memberships');
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching client memberships:', error);
+    return [];
+  }
+};
+
 
 const internalClientFormSchema = z.object({
   ownerFirstName: z.string().min(1, { message: "First name is required." }),
@@ -182,7 +193,9 @@ export default function ClientsPage() {
   const [isLoadingQuestionnaireForSheet, setIsLoadingQuestionnaireForSheet] = useState<boolean>(false);
 
   const [clientSessionsForView, setClientSessionsForView] = useState<Session[]>([]);
+  const [clientMembershipsForView, setClientMembershipsForView] = useState<MembershipWithClient[]>([]);
   const [memberFilter, setMemberFilter] = useState<MemberFilterType>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
 
 
@@ -389,6 +402,11 @@ export default function ClientsPage() {
       setQuestionnaireForSheet(null);
       const sessionsForThisClient = allSessions.filter(s => s.clientId === clientForViewSheet.id);
       setClientSessionsForView(sessionsForThisClient);
+
+      // Fetch memberships for this client
+      getClientMemberships(clientForViewSheet.id).then(memberships => {
+        setClientMembershipsForView(memberships);
+      });
     }
   }, [isViewSheetOpen, clientForViewSheet, allSessions]);
 
@@ -423,15 +441,39 @@ export default function ClientsPage() {
   };
 
   const filteredClients = useMemo(() => {
-    if (memberFilter === 'all') return clients;
-    return clients.filter(client => memberFilter === 'members' ? client.isMember : !client.isMember);
-  }, [clients, memberFilter]);
+    let filtered = clients;
+
+    // Apply membership filter
+    if (memberFilter !== 'all') {
+      filtered = filtered.filter(client => memberFilter === 'members' ? client.isMember : !client.isMember);
+    }
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(client => {
+        const fullName = `${client.ownerFirstName} ${client.ownerLastName}`.toLowerCase();
+        const dogName = client.dogName?.toLowerCase() || '';
+        const email = client.contactEmail?.toLowerCase() || '';
+        const postcode = client.postcode?.toLowerCase() || '';
+        const address = client.fullAddress?.toLowerCase() || '';
+
+        return fullName.includes(query) ||
+               dogName.includes(query) ||
+               email.includes(query) ||
+               postcode.includes(query) ||
+               address.includes(query);
+      });
+    }
+
+    return filtered;
+  }, [clients, memberFilter, searchQuery]);
 
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Clients</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Clients - {filteredClients.length}</h1>
         <div className="flex items-center gap-2">
            <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -551,6 +593,17 @@ export default function ClientsPage() {
                 </SheetContent>
             </Sheet>
         </div>
+      </div>
+
+      {/* Search Input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search clients by name, dog name, email, postcode, or address..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 focus-visible:ring-0 focus-visible:ring-offset-0"
+        />
       </div>
 
       {isLoading && (
@@ -784,7 +837,32 @@ export default function ClientsPage() {
                                         </ul>
                                       </TabsContent>
                                     <TabsContent value="membership" className="pt-4">
-                                      <p className="text-sm text-muted-foreground text-center py-4">Membership details are not yet available.</p>
+                                        <ul className="space-y-3">
+                                            {clientMembershipsForView.length > 0 ? clientMembershipsForView.map(membership => (
+                                            <li key={membership.id} className="bg-card border border-border rounded-md p-3">
+                                                <div className="flex items-center justify-between">
+                                                  <div>
+                                                    <div className="text-sm font-medium text-foreground">
+                                                      Membership Payment • {formatCurrency(membership.amount)}
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                      Payment Date: {formatDate(membership.date)}
+                                                    </div>
+                                                    {membership.email && (
+                                                      <div className="text-xs text-muted-foreground mt-1">
+                                                        Email: {membership.email}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                  <div className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    Paid
+                                                  </div>
+                                                </div>
+                                            </li>
+                                            )) : (
+                                            <p className="text-sm text-muted-foreground text-center py-4">No membership history for this client.</p>
+                                            )}
+                                        </ul>
                                     </TabsContent>
                                 </Tabs>
                             </div>
@@ -918,9 +996,11 @@ export default function ClientsPage() {
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)} disabled={isProcessingDelete} className="focus-visible:ring-0 focus-visible:ring-offset-0">Cancel</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)} disabled={isProcessingDelete} className="focus-visible:ring-0 focus-visible:ring-offset-0">
+                  <X className="h-4 w-4" />
+                </AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmDeleteClient} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground focus-visible:ring-0 focus-visible:ring-offset-0" disabled={isProcessingDelete}>
-                {isProcessingDelete && clientToDelete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Confirm Delete
+                  {isProcessingDelete && clientToDelete ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                 </AlertDialogAction>
             </AlertDialogFooter>
             </AlertDialogContent>

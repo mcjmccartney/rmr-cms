@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { Menu, X, Users, CalendarDays, LayoutDashboard, DollarSign, Settings, LogOut, FileText, ClipboardList } from "lucide-react";
+import { Menu, X, Users, CalendarDays, LayoutDashboard, DollarSign, UserCheck, Settings, LogOut, FileText, ClipboardList } from "lucide-react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Link from 'next/link';
@@ -42,6 +42,7 @@ const Fab = React.forwardRef<HTMLButtonElement, FabProps>(
       { id: 'clients', href: '/clients', icon: Users, label: "Go to Clients" },
       { id: 'sessions', href: '/sessions', icon: CalendarDays, label: "Go to Sessions" },
       { id: 'finance', href: '/finance', icon: DollarSign, label: "Go to Finance" },
+      { id: 'memberships', href: '/memberships', icon: UserCheck, label: "Go to Memberships" },
     ];
 
     const formActions = [

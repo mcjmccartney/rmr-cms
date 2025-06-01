@@ -194,7 +194,6 @@ export default function HomePage() {
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [isDeleteSessionDialogOpen, setIsDeleteSessionDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
 
   const addClientForm = useForm<InternalClientFormValuesDash>({
@@ -653,23 +652,6 @@ export default function HomePage() {
                 <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight className="h-4 w-4" /></Button>
             </div>
             <div className="flex items-center gap-2">
-                {/* Desktop search - hidden on mobile */}
-                <Input
-                  type="search"
-                  placeholder="Search sessions..."
-                  className="hidden sm:block h-9 focus-visible:ring-0 focus-visible:ring-offset-0 w-full max-w-xs sm:max-w-sm"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                {/* Mobile search button - visible only on mobile */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="sm:hidden h-9 w-9"
-                  onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
                 <Sheet open={isAddClientSheetOpen} onOpenChange={setIsAddClientSheetOpen}>
                   <SheetTrigger asChild>
                       <Button className="h-10 w-10 min-w-10 max-w-10 flex-shrink-0">
@@ -895,32 +877,17 @@ export default function HomePage() {
                     </SheetContent>
                 </Sheet>
             </div>
-            {/* Mobile search bar - appears below buttons when expanded */}
-            {isSearchExpanded && (
-                <div className="sm:hidden">
-                    <div className="flex items-center gap-2">
-                        <Input
-                          type="search"
-                          placeholder="Search sessions..."
-                          className="h-9 focus-visible:ring-0 focus-visible:ring-offset-0 flex-1"
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          autoFocus
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSearchTerm('');
-                            setIsSearchExpanded(false);
-                          }}
-                          className="h-9 w-9"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-            )}
+
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search sessions by client or dog name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+        </div>
         </div>
 
         <div className="flex-1"> {/* Removed CardContent p-0 */}
