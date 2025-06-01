@@ -418,6 +418,7 @@ export default function FinancePage() {
                             onChange={(e) => setEditExpectedValue(e.target.value)}
                             placeholder="0.00"
                             autoFocus
+                            className="focus:ring-0 focus:ring-offset-0"
                           />
                         </div>
                         <div className="flex gap-2">
