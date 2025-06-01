@@ -85,13 +85,23 @@ const getExpectedRevenue = async (year?: number, month?: number) => {
 };
 
 const saveExpectedRevenue = async (year: number, month: number, amount: number) => {
+  console.log('Saving expected revenue:', { year, month, amount });
+
   const response = await fetch('/api/expected-revenue', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ year, month, expected_amount: amount }),
   });
-  if (!response.ok) throw new Error('Failed to save expected revenue');
-  return response.json();
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error('Failed to save expected revenue:', response.status, errorData);
+    throw new Error(`Failed to save expected revenue: ${response.status}`);
+  }
+
+  const result = await response.json();
+  console.log('Save result:', result);
+  return result;
 };
 
 export default function FinancePage() {
@@ -233,9 +243,19 @@ export default function FinancePage() {
       const expectedResponse = await getExpectedRevenue();
       setExpectedTargets(expectedResponse || []);
 
+      // Update the selected month with new expected revenue
+      const updatedMonth = {
+        ...selectedMonth,
+        expectedRevenue: amount,
+        variance: selectedMonth.actualRevenue - amount
+      };
+      setSelectedMonth(updatedMonth);
+
       setIsEditingExpected(false);
     } catch (error) {
       console.error('Error saving expected revenue:', error);
+      // You could add a toast notification here for better UX
+      alert('Failed to save expected revenue. Please try again.');
     }
   };
 
@@ -407,13 +427,11 @@ export default function FinancePage() {
                           />
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={handleSaveExpected}>
-                            <Check className="h-4 w-4 mr-1" />
-                            Save
+                          <Button size="sm" onClick={handleSaveExpected} className="h-8 w-8 p-0">
+                            <Check className="h-4 w-4" />
                           </Button>
-                          <Button variant="outline" size="sm" onClick={handleCancelEdit}>
-                            <X className="h-4 w-4 mr-1" />
-                            Cancel
+                          <Button variant="outline" size="sm" onClick={handleCancelEdit} className="h-8 w-8 p-0">
+                            <X className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
