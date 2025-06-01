@@ -197,6 +197,32 @@ export interface Database {
           created_at?: string
         }
       }
+      expected_revenue_targets: {
+        Row: {
+          id: string
+          year: number
+          month: number
+          expected_amount: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          year: number
+          month: number
+          expected_amount: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          year?: number
+          month?: number
+          expected_amount?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
       behavioural_briefs: {
         Row: {
           id: string

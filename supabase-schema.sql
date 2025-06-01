@@ -107,18 +107,31 @@ CREATE TABLE IF NOT EXISTS behaviour_questionnaires (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Expected revenue targets table
+CREATE TABLE IF NOT EXISTS expected_revenue_targets (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  year INTEGER NOT NULL,
+  month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
+  expected_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(year, month)
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(contact_email);
 CREATE INDEX IF NOT EXISTS idx_sessions_client_id ON sessions(client_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date);
 CREATE INDEX IF NOT EXISTS idx_behavioural_briefs_client_id ON behavioural_briefs(client_id);
 CREATE INDEX IF NOT EXISTS idx_behaviour_questionnaires_client_id ON behaviour_questionnaires(client_id);
+CREATE INDEX IF NOT EXISTS idx_expected_revenue_targets_year_month ON expected_revenue_targets(year, month);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE behavioural_briefs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE behaviour_questionnaires ENABLE ROW LEVEL SECURITY;
+ALTER TABLE expected_revenue_targets ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for authenticated users (you can modify these based on your needs)
 -- For now, allowing all operations for authenticated users
@@ -127,7 +140,7 @@ ALTER TABLE behaviour_questionnaires ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all operations for authenticated users" ON clients
   FOR ALL USING (auth.role() = 'authenticated');
 
--- Sessions policies  
+-- Sessions policies
 CREATE POLICY "Allow all operations for authenticated users" ON sessions
   FOR ALL USING (auth.role() = 'authenticated');
 
