@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MonthlyMembershipData, YearlyMembershipSummary, MembershipWithClient } from '@/lib/types';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
-import { ChevronRight, X, Users, TrendingUp, TrendingDown, ChevronLeft, Target, Calendar, Loader2 } from 'lucide-react';
+import { ChevronRight, X, Users, TrendingUp, TrendingDown, ChevronLeft, Calendar, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -103,6 +103,96 @@ export default function MembershipsPage() {
     fetchMonthMembers(monthData.year, monthData.month);
   };
 
+  // Side panel navigation
+  const navigateToMonth = (direction: 'prev' | 'next') => {
+    if (!selectedMonth) return;
+
+    const currentIndex = monthlyData.findIndex(
+      month => month.year === selectedMonth.year && month.month === selectedMonth.month
+    );
+
+    if (currentIndex === -1) return;
+
+    let newIndex;
+    if (direction === 'prev') {
+      newIndex = currentIndex + 1; // Next in array (older month)
+    } else {
+      newIndex = currentIndex - 1; // Previous in array (newer month)
+    }
+
+    if (newIndex >= 0 && newIndex < monthlyData.length) {
+      const newMonth = monthlyData[newIndex];
+      setSelectedMonth(newMonth);
+      fetchMonthMembers(newMonth.year, newMonth.month);
+    }
+  };
+
+  // Keyboard navigation for side panel
+  React.useEffect(() => {
+    if (!isMonthSheetOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return; // Don't interfere with input fields
+      }
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        navigateToMonth('prev');
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        navigateToMonth('next');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMonthSheetOpen, selectedMonth, monthlyData]);
+
+  // Mobile swipe navigation for side panel
+  React.useEffect(() => {
+    if (!isMonthSheetOpen) return;
+
+    const isMobile = window.innerWidth < 768; // sm breakpoint
+    if (!isMobile) return;
+
+    let startX = 0;
+    let startY = 0;
+    const threshold = 50; // Minimum swipe distance
+    const restraint = 100; // Maximum vertical movement
+
+    const handleTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const distX = endX - startX;
+      const distY = endY - startY;
+
+      // Check if it's a horizontal swipe (not vertical scroll)
+      if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
+        if (distX > 0) {
+          // Swipe right - go to previous month (older)
+          navigateToMonth('prev');
+        } else if (distX < 0) {
+          // Swipe left - go to next month (newer)
+          navigateToMonth('next');
+        }
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isMonthSheetOpen, selectedMonth, monthlyData]);
+
   const getMonthName = (month: number) => {
     return new Date(2024, month - 1).toLocaleString('default', { month: 'long' });
   };
@@ -196,7 +286,7 @@ export default function MembershipsPage() {
                         {monthData.totalMembers} members
                       </span>
                       <span className="flex items-center gap-1">
-                        <Target className="h-3 w-3" />
+                        <span className="text-xs font-semibold">£</span>
                         Total: {formatCurrency(monthData.monthlyRecurringRevenue)}
                       </span>
                     </div>

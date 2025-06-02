@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Session, MembershipWithClient } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +20,6 @@ import {
   Check,
   X,
   ChevronLeft,
-  Target,
   Calendar,
   Users
 } from 'lucide-react';
@@ -308,6 +307,96 @@ export default function FinancePage() {
     setEditExpectedValue(selectedMonth?.expectedRevenue.toString() || '');
   };
 
+  // Side panel navigation
+  const navigateToMonth = (direction: 'prev' | 'next') => {
+    if (!selectedMonth) return;
+
+    const currentIndex = monthsData.findIndex(
+      month => month.year === selectedMonth.year && month.month === selectedMonth.month
+    );
+
+    if (currentIndex === -1) return;
+
+    let newIndex;
+    if (direction === 'prev') {
+      newIndex = currentIndex + 1; // Next in array (older month)
+    } else {
+      newIndex = currentIndex - 1; // Previous in array (newer month)
+    }
+
+    if (newIndex >= 0 && newIndex < monthsData.length) {
+      setSelectedMonth(monthsData[newIndex]);
+      setIsEditingExpected(false);
+      setEditExpectedValue(monthsData[newIndex].expectedRevenue.toString());
+    }
+  };
+
+  // Keyboard navigation for side panel
+  React.useEffect(() => {
+    if (!isMonthSheetOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return; // Don't interfere with input fields
+      }
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        navigateToMonth('prev');
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        navigateToMonth('next');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMonthSheetOpen, selectedMonth, monthsData]);
+
+  // Mobile swipe navigation for side panel
+  React.useEffect(() => {
+    if (!isMonthSheetOpen) return;
+
+    const isMobile = window.innerWidth < 768; // sm breakpoint
+    if (!isMobile) return;
+
+    let startX = 0;
+    let startY = 0;
+    const threshold = 50; // Minimum swipe distance
+    const restraint = 100; // Maximum vertical movement
+
+    const handleTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const distX = endX - startX;
+      const distY = endY - startY;
+
+      // Check if it's a horizontal swipe (not vertical scroll)
+      if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
+        if (distX > 0) {
+          // Swipe right - go to previous month (older)
+          navigateToMonth('prev');
+        } else if (distX < 0) {
+          // Swipe left - go to next month (newer)
+          navigateToMonth('next');
+        }
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isMonthSheetOpen, selectedMonth, monthsData]);
+
   // Chart colors
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1', '#d084d0', '#ffb347'];
 
@@ -379,7 +468,7 @@ export default function FinancePage() {
                         {month.membershipCount} memberships
                       </span>
                       <span className="flex items-center gap-1">
-                        <Target className="h-3 w-3" />
+                        <span className="text-xs font-semibold">£</span>
                         Expected: £{month.expectedRevenue.toFixed(0)}
                       </span>
                     </div>
