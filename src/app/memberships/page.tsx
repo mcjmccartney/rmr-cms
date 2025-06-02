@@ -228,7 +228,7 @@ export default function MembershipsPage() {
                   />
                   <div>
                     <h3 className="font-semibold text-sm">{getMonthName(monthData.month)} {monthData.year}</h3>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
                         {monthData.totalMembers} members

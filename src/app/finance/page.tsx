@@ -405,7 +405,7 @@ export default function FinancePage() {
                   />
                   <div>
                     <h3 className="font-semibold text-sm">{month.monthName} {month.year}</h3>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {month.sessionCount} sessions
