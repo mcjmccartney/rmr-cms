@@ -645,23 +645,12 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col gap-6 h-full">
-        <div className="flex items-center justify-between"> {/* Removed CardHeader specific classes and py-3 padding */}
+        <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
             <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft className="h-4 w-4" /></Button>
                 <h2 className="text-lg font-semibold text-center min-w-[120px]">{format(currentMonth, 'MMMM yyyy')}</h2>
                 <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight className="h-4 w-4" /></Button>
-            </div>
-            <div className="flex items-center gap-2">
-                {/* Search Input */}
-                <div className="relative flex-1 max-w-sm">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search sessions by client or dog..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                </div>
 
                 <Sheet open={isAddClientSheetOpen} onOpenChange={setIsAddClientSheetOpen}>
                   <SheetTrigger asChild>
@@ -888,6 +877,17 @@ export default function HomePage() {
                     </SheetContent>
                 </Sheet>
             </div>
+        </div>
+
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search sessions by client, dog name, session type, date, or time..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
         </div>
 
         <div className="flex-1"> {/* Removed CardContent p-0 */}
