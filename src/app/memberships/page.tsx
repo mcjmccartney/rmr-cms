@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { MonthlyMembershipData, YearlyMembershipSummary, MembershipWithClient } from '@/lib/types';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
-import { ChevronRight, X, Users, TrendingUp, TrendingDown, ChevronLeft, Target, Calendar, Loader2, Search } from 'lucide-react';
+import { ChevronRight, X, Users, TrendingUp, TrendingDown, ChevronLeft, Target, Calendar, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,8 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input';
-import { parseISO, isValid } from 'date-fns';
 
 export default function MembershipsPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -24,15 +22,12 @@ export default function MembershipsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMonthSheetOpen, setIsMonthSheetOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [memberships, setMemberships] = useState<MembershipWithClient[]>([]);
 
   const currentYear = new Date().getFullYear();
   const availableYears = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
   useEffect(() => {
     fetchYearlyData();
-    fetchAllMemberships();
   }, []);
 
   useEffect(() => {
@@ -55,17 +50,7 @@ export default function MembershipsPage() {
     }
   };
 
-  const fetchAllMemberships = async () => {
-    try {
-      const response = await fetch('/api/memberships');
-      if (response.ok) {
-        const data = await response.json();
-        setMemberships(data);
-      }
-    } catch (error) {
-      console.error('Error fetching all memberships:', error);
-    }
-  };
+
 
   const fetchMonthlyData = async () => {
     setIsLoading(true);
@@ -171,47 +156,12 @@ export default function MembershipsPage() {
         </Select>
       </div>
 
-      {/* Search Input */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search memberships by client name or amount..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 focus-visible:ring-0 focus-visible:ring-offset-0"
-        />
-      </div>
+
 
       {/* Months List */}
       <div className="space-y-2">
         {monthlyData.length > 0 ? (
-          monthlyData
-            .filter(monthData => {
-              if (!searchTerm) return true;
-
-              // Filter months that have matching memberships
-              const monthMemberships = memberships.filter(membership => {
-                const membershipDate = parseISO(membership.date);
-                return isValid(membershipDate) &&
-                       membershipDate.getFullYear() === monthData.year &&
-                       membershipDate.getMonth() + 1 === monthData.month;
-              });
-
-              const hasMatchingMemberships = monthMemberships.some(membership => {
-                const searchLower = searchTerm.toLowerCase();
-                const clientName = membership.clients?.[0]
-                  ? `${membership.clients[0].owner_first_name} ${membership.clients[0].owner_last_name}`
-                  : membership.client || 'Unknown Client';
-
-                return (
-                  clientName.toLowerCase().includes(searchLower) ||
-                  (membership.amount && membership.amount.toString().includes(searchLower))
-                );
-              });
-
-              return hasMatchingMemberships;
-            })
-            .map((monthData) => (
+          monthlyData.map((monthData) => (
             <div
               key={`${monthData.year}-${monthData.month}`}
               className="py-3 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/50 px-4"

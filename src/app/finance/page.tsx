@@ -22,8 +22,7 @@ import {
   ChevronLeft,
   Target,
   Calendar,
-  Users,
-  Search
+  Users
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO, isValid, startOfMonth, endOfMonth, isSameMonth } from 'date-fns';
@@ -126,7 +125,6 @@ export default function FinancePage() {
   const [isMonthSheetOpen, setIsMonthSheetOpen] = useState(false);
   const [isEditingExpected, setIsEditingExpected] = useState(false);
   const [editExpectedValue, setEditExpectedValue] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch data
   useEffect(() => {
@@ -349,46 +347,12 @@ export default function FinancePage() {
         </Select>
       </div>
 
-      {/* Search Input */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search financial records by client, session type, or amount..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 focus-visible:ring-0 focus-visible:ring-offset-0"
-        />
-      </div>
+
 
       {/* Months List */}
       <div className="space-y-2">
         {monthsData.length > 0 ? (
-          monthsData
-            .filter(month => {
-              if (!searchTerm) return true;
-
-              // Filter months that have matching records
-              const hasMatchingRecords = [
-                ...month.sessions,
-                ...month.memberships
-              ].some(record => {
-                const searchLower = searchTerm.toLowerCase();
-                const displayName = record.sessionType === 'Group'
-                  ? 'Group Session'
-                  : record.sessionType === 'RMR Live'
-                  ? 'RMR Live'
-                  : record.clientName || record.client || 'Unknown Client';
-
-                return (
-                  displayName.toLowerCase().includes(searchLower) ||
-                  (record.sessionType && record.sessionType.toLowerCase().includes(searchLower)) ||
-                  (record.amount && record.amount.toString().includes(searchLower))
-                );
-              });
-
-              return hasMatchingRecords;
-            })
-            .map((month) => (
+          monthsData.map((month) => (
             <div
               key={`${month.year}-${month.month}`}
               className="py-3 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/50 px-4"
