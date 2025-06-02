@@ -36,52 +36,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     setMounted(true);
   }, []);
 
-  // Tab navigation order
-  const tabOrder = ['/', '/clients', '/sessions', '/finance', '/memberships'];
 
-  // Swipe navigation for mobile
-  React.useEffect(() => {
-    if (!mounted || !isMobile) return;
-
-    let startX = 0;
-    let startY = 0;
-    const threshold = 50; // Minimum swipe distance
-    const restraint = 100; // Maximum vertical movement
-
-    const handleTouchStart = (e: TouchEvent) => {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      const endX = e.changedTouches[0].clientX;
-      const endY = e.changedTouches[0].clientY;
-      const distX = endX - startX;
-      const distY = endY - startY;
-
-      // Check if it's a horizontal swipe (not vertical scroll)
-      if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
-        const currentIndex = tabOrder.indexOf(pathname);
-        if (currentIndex === -1) return;
-
-        if (distX > 0 && currentIndex > 0) {
-          // Swipe right - go to previous tab
-          router.push(tabOrder[currentIndex - 1]);
-        } else if (distX < 0 && currentIndex < tabOrder.length - 1) {
-          // Swipe left - go to next tab
-          router.push(tabOrder[currentIndex + 1]);
-        }
-      }
-    };
-
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true });
-
-    return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [mounted, isMobile, pathname, router]);
 
   React.useEffect(() => {
     if (!mounted || authLoading) return;

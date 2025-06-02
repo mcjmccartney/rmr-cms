@@ -383,6 +383,48 @@ export default function HomePage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentMonth]);
 
+  // Mobile swipe navigation for calendar months
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768; // sm breakpoint
+    if (!isMobile) return;
+
+    let startX = 0;
+    let startY = 0;
+    const threshold = 50; // Minimum swipe distance
+    const restraint = 100; // Maximum vertical movement
+
+    const handleTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const distX = endX - startX;
+      const distY = endY - startY;
+
+      // Check if it's a horizontal swipe (not vertical scroll)
+      if (Math.abs(distX) >= threshold && Math.abs(distY) <= restraint) {
+        if (distX > 0) {
+          // Swipe right - go to previous month
+          setCurrentMonth(subMonths(currentMonth, 1));
+        } else if (distX < 0) {
+          // Swipe left - go to next month
+          setCurrentMonth(addMonths(currentMonth, 1));
+        }
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [currentMonth]);
+
   useEffect(() => {
     if (isSessionSheetOpen && selectedSessionForSheet && selectedSessionForSheet.clientId) {
       setSessionSheetViewMode('sessionInfo');

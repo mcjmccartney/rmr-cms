@@ -534,41 +534,7 @@ export default function FinancePage() {
                     </div>
                   )}
 
-                  {/* Memberships List */}
-                  {selectedMonth.memberships.length > 0 && (
-                    <div className="space-y-3">
-                      <h3 className="font-medium">Memberships ({selectedMonth.memberships.length})</h3>
-                      <div className="space-y-2">
-                        {selectedMonth.memberships
-                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                          .map((membership) => (
-                            <div key={membership.id} className="p-3 border rounded-lg">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <p className="font-medium text-sm">
-                                    {membership.clients?.[0]
-                                      ? `${membership.clients[0].owner_first_name} ${membership.clients[0].owner_last_name}`
-                                      : membership.client || 'Unknown Client'}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {isValid(parseISO(membership.date))
-                                      ? format(parseISO(membership.date), 'dd/MM/yyyy')
-                                      : membership.date
-                                    }
-                                  </p>
-                                  <Badge variant="outline" className="mt-1 text-xs">
-                                    Membership Payment
-                                  </Badge>
-                                </div>
-                                <p className="font-medium text-green-600">
-                                  £{membership.amount?.toFixed(2)}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
+
 
                   {/* Sessions List */}
                   {selectedMonth.sessions.length > 0 && (
@@ -609,9 +575,9 @@ export default function FinancePage() {
                     </div>
                   )}
 
-                  {selectedMonth.sessions.length === 0 && selectedMonth.memberships.length === 0 && (
+                  {selectedMonth.sessions.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
-                      No sessions or memberships found for this month
+                      No sessions found for this month
                     </div>
                   )}
                 </>
