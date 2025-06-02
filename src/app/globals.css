@@ -118,6 +118,59 @@
 }
 
 @layer components {
+  /* Remove focus rings globally from all form elements */
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button:focus,
+  [role="combobox"]:focus,
+  [role="button"]:focus,
+  [data-radix-collection-item]:focus,
+  [data-state]:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    ring: none !important;
+    --tw-ring-shadow: none !important;
+    --tw-ring-offset-shadow: none !important;
+  }
+
+  /* Remove focus-visible rings as well */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  button:focus-visible,
+  [role="combobox"]:focus-visible,
+  [role="button"]:focus-visible,
+  [data-radix-collection-item]:focus-visible,
+  [data-state]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    ring: none !important;
+    --tw-ring-shadow: none !important;
+    --tw-ring-offset-shadow: none !important;
+  }
+
+  /* Add focus rings back ONLY for behaviour forms */
+  .behaviour-form input:focus,
+  .behaviour-form textarea:focus,
+  .behaviour-form select:focus,
+  .behaviour-form button:focus,
+  .behaviour-form [role="combobox"]:focus,
+  .behaviour-form [role="button"]:focus {
+    outline: 2px solid hsl(var(--ring)) !important;
+    outline-offset: 2px !important;
+  }
+
+  .behaviour-form input:focus-visible,
+  .behaviour-form textarea:focus-visible,
+  .behaviour-form select:focus-visible,
+  .behaviour-form button:focus-visible,
+  .behaviour-form [role="combobox"]:focus-visible,
+  .behaviour-form [role="button"]:focus-visible {
+    outline: 2px solid hsl(var(--ring)) !important;
+    outline-offset: 2px !important;
+  }
+
   /* Custom date picker hover override */
   .rdp-day:hover:not(.rdp-day_selected):not(.rdp-day_disabled) {
     background-color: #92351f !important;

@@ -334,7 +334,7 @@ export default function BehaviourQuestionnairePage() {
       </div>
       <Card className="w-full max-w-3xl shadow-2xl bg-[#ebeadf]">
         <CardContent className="p-6 sm:p-8">
-          <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-0">
+          <form onSubmit={handleSubmit(handleFormSubmit)} className="behaviour-form space-y-0">
 
             <SectionTitle title="OWNER INFORMATION" />
             <FormFieldWrapper label="Owner Name" htmlForProp="ownerFirstName" error={errors.ownerFirstName?.message || errors.ownerLastName?.message} required>
