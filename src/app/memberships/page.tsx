@@ -197,7 +197,7 @@ export default function MembershipsPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Target className="h-3 w-3" />
-                        MRR: {formatCurrency(monthData.monthlyRecurringRevenue)}
+                        Total: {formatCurrency(monthData.monthlyRecurringRevenue)}
                       </span>
                     </div>
                   </div>
@@ -260,7 +260,7 @@ export default function MembershipsPage() {
                           <p className="text-lg font-semibold">{selectedMonth.totalMembers}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-muted-foreground">MRR</p>
+                          <p className="text-sm text-muted-foreground">Total</p>
                           <p className="text-lg font-semibold text-green-600">{formatCurrency(selectedMonth.monthlyRecurringRevenue)}</p>
                         </div>
                       </div>
