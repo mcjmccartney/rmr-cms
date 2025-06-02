@@ -315,23 +315,6 @@ export default function BehaviourQuestionnairePage() {
 
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
-      <div className="flex justify-center items-center gap-4 mb-10">
-        <Image
-          src="https://iili.io/34300ox.md.jpg"
-          alt="RMR Logo"
-          width={60}
-          height={60}
-          className="rounded-sm"
-          data-ai-hint="company logo"
-        />
-        <Image
-          src="https://iili.io/3PLgIHu.png"
-          alt="Behaviour Questionnaire Title"
-          width={630}
-          height={70}
-          data-ai-hint="form title"
-        />
-      </div>
       <Card className="w-full max-w-3xl shadow-2xl bg-[#ebeadf]">
         <CardContent className="p-6 sm:p-8">
           <form onSubmit={handleSubmit(handleFormSubmit)} className="behaviour-form space-y-0">

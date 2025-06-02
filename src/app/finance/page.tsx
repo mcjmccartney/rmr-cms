@@ -475,7 +475,7 @@ export default function FinancePage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold text-green-600">
+                  <div className="font-semibold text-foreground">
                     £{month.actualRevenue.toFixed(0)}
                   </div>
                   <div className={cn(

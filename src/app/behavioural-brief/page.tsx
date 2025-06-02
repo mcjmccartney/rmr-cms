@@ -163,23 +163,6 @@ export default function BehaviouralBriefPage() {
 
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
-      <div className="flex justify-center items-center gap-4 mb-10">
-        <Image
-          src="https://iili.io/34300ox.md.jpg"
-          alt="RMR Logo"
-          width={60}
-          height={60}
-          className="rounded-sm"
-          data-ai-hint="company logo"
-        />
-        <Image
-          src="https://iili.io/3PLgTAb.png"
-          alt="Behavioural Brief Title"
-          width={450}
-          height={75}
-          data-ai-hint="form title"
-        />
-      </div>
       <Card className="w-full max-w-3xl shadow-2xl bg-[#ebeadf]">
         <CardContent className="p-6 sm:p-8">
           <form onSubmit={handleSubmit(handleFormSubmit)} className="behaviour-form space-y-0">
