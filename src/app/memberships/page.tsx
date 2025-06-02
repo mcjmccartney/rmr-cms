@@ -24,7 +24,11 @@ export default function MembershipsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const currentYear = new Date().getFullYear();
-  const availableYears = Array.from({ length: 10 }, (_, i) => currentYear - i);
+  // Only show years that have data (totalMRR > 0), but always include 2024
+  const availableYears = yearlyData
+    .filter(yearData => yearData.totalMRR > 0 || yearData.year === 2024)
+    .map(yearData => yearData.year)
+    .sort((a, b) => b - a); // Sort descending (newest first)
 
   useEffect(() => {
     fetchYearlyData();
@@ -161,7 +165,15 @@ export default function MembershipsPage() {
       {/* Months List */}
       <div className="space-y-2">
         {monthlyData.length > 0 ? (
-          monthlyData.map((monthData) => (
+          monthlyData
+            .sort((a, b) => {
+              // Sort by year descending, then by month descending (newest first)
+              if (a.year !== b.year) {
+                return b.year - a.year;
+              }
+              return b.month - a.month;
+            })
+            .map((monthData) => (
             <div
               key={`${monthData.year}-${monthData.month}`}
               className="py-3 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/50 px-4"
