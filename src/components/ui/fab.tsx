@@ -21,6 +21,21 @@ const Fab = React.forwardRef<HTMLButtonElement, FabProps>(
     const router = useRouter();
     const { toast } = useToast();
     const { user, signOut } = useAuth(); // For logout
+    const fabRef = React.useRef<HTMLDivElement>(null);
+
+    // Close FAB when clicking outside
+    React.useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (actionsOpen && fabRef.current && !fabRef.current.contains(event.target as Node)) {
+          setActionsOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, [actionsOpen]);
 
     const handleLogout = async () => {
       if (!user) return; // Should not happen if FAB is shown for authenticated users
@@ -66,7 +81,7 @@ const Fab = React.forwardRef<HTMLButtonElement, FabProps>(
 
     return (
       <div className="fixed bottom-6 right-6 z-40">
-        <div className="relative flex flex-col items-center gap-3">
+        <div ref={fabRef} className="relative flex flex-col items-center gap-3">
           {actionsOpen && (
             <>
               {/* Logout Button */}
