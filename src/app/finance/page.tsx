@@ -333,141 +333,115 @@ export default function FinancePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
           Finance - £{yearTotals.actualRevenue.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </h1>
-        <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {availableYears.map(year => (
-              <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          {/* Search Input */}
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search financial records by client, session type, or amount..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+          </div>
+
+          <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {availableYears.map(year => (
+                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Search Input */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search financial records by client, session type, or amount..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 focus-visible:ring-0 focus-visible:ring-offset-0"
-        />
-      </div>
-
-      {/* Financial Records by Month */}
-      <div className="space-y-4">
+      {/* Months List */}
+      <div className="space-y-2">
         {monthsData.length > 0 ? (
-          monthsData.map((month) => {
-            // Combine sessions and memberships into a single array
-            const allRecords = [
-              ...month.sessions.map(session => ({
-                ...session,
-                type: 'session',
-                displayName: session.sessionType === 'Group'
+          monthsData
+            .filter(month => {
+              if (!searchTerm) return true;
+
+              // Filter months that have matching records
+              const hasMatchingRecords = [
+                ...month.sessions,
+                ...month.memberships
+              ].some(record => {
+                const searchLower = searchTerm.toLowerCase();
+                const displayName = record.sessionType === 'Group'
                   ? 'Group Session'
-                  : session.sessionType === 'RMR Live'
+                  : record.sessionType === 'RMR Live'
                   ? 'RMR Live'
-                  : formatFullNameAndDogName(session.clientName, session.dogName),
-                badge: session.sessionType
-              })),
-              ...month.memberships.map(membership => ({
-                ...membership,
-                type: 'membership',
-                displayName: membership.clients?.[0]
-                  ? `${membership.clients[0].owner_first_name} ${membership.clients[0].owner_last_name}`
-                  : membership.client || 'Unknown Client',
-                badge: 'Membership Payment'
-              }))
-            ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                  : record.clientName || record.client || 'Unknown Client';
 
-            // Filter records based on search term
-            const filteredRecords = allRecords.filter(record => {
-              const searchLower = searchTerm.toLowerCase();
-              return (
-                record.displayName.toLowerCase().includes(searchLower) ||
-                record.badge.toLowerCase().includes(searchLower) ||
-                (record.amount && record.amount.toString().includes(searchLower))
-              );
-            });
+                return (
+                  displayName.toLowerCase().includes(searchLower) ||
+                  (record.sessionType && record.sessionType.toLowerCase().includes(searchLower)) ||
+                  (record.amount && record.amount.toString().includes(searchLower))
+                );
+              });
 
-            if (filteredRecords.length === 0 && searchTerm) return null;
-
-            return (
-              <div key={`${month.year}-${month.month}`} className="space-y-2">
-                <div className="bg-card shadow-sm rounded-md p-4">
-                  <h3 className="text-lg font-semibold">{month.monthName} {month.year}</h3>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                    <span>{month.sessionCount} sessions</span>
-                    <span>•</span>
-                    <span>{month.membershipCount} memberships</span>
-                    <span>•</span>
-                    <span className="font-medium text-green-600">£{month.actualRevenue.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              return hasMatchingRecords;
+            })
+            .map((month) => (
+            <div
+              key={`${month.year}-${month.month}`}
+              className="py-3 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/50 px-4"
+              onClick={() => handleMonthClick(month)}
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3 flex-grow">
+                  <Image
+                    src="https://iili.io/34300ox.md.jpg"
+                    alt="RMR Logo"
+                    width={32}
+                    height={32}
+                    className="rounded-md"
+                  />
+                  <div>
+                    <h3 className="font-semibold text-sm">{month.monthName} {month.year}</h3>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {month.sessionCount} sessions
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {month.membershipCount} memberships
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Target className="h-3 w-3" />
+                        Expected: £{month.expectedRevenue.toFixed(0)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-
-                {/* Individual Record Cards */}
-                <div className="space-y-0">
-                  {filteredRecords.map((record) => (
-                    <div
-                      key={`${record.type}-${record.id}`}
-                      className="py-3 border-b border-border last:border-b-0 cursor-pointer hover:bg-muted/50"
-                    >
-                      <div className="flex justify-between items-center px-4">
-                        <div className="flex items-center gap-3 flex-grow">
-                          <Image
-                            src="https://iili.io/34300ox.md.jpg"
-                            alt="RMR Logo"
-                            width={32}
-                            height={32}
-                            className="rounded-md"
-                          />
-                          <div>
-                            <h3 className="font-semibold text-sm">{record.displayName}</h3>
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                              <span className="flex items-center">
-                                {isValid(parseISO(record.date))
-                                  ? format(parseISO(record.date), 'dd/MM/yyyy')
-                                  : record.date
-                                }
-                              </span>
-                              {record.time && <span className="sm:inline">•</span>}
-                              {record.time && (
-                                <span className="flex items-center">
-                                  {formatTimeWithoutSeconds(record.time)}
-                                </span>
-                              )}
-                              {record.amount !== undefined && <span className="sm:inline">•</span>}
-                              {record.amount !== undefined && (
-                                <span className="flex items-center">
-                                  £{record.amount.toFixed(2)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="default" className="mt-1 whitespace-nowrap hidden sm:inline-flex">
-                            {record.badge}
-                          </Badge>
-                          <div className="text-right">
-                            <div className="font-semibold text-green-600">
-                              £{record.amount?.toFixed(2)}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="text-right">
+                  <div className="font-semibold text-green-600">
+                    £{month.actualRevenue.toFixed(0)}
+                  </div>
+                  <div className={cn(
+                    "text-xs flex items-center gap-1",
+                    month.variance >= 0 ? "text-green-600" : "text-red-600"
+                  )}>
+                    {month.variance >= 0 ? (
+                      <TrendingUp className="h-3 w-3" />
+                    ) : (
+                      <TrendingDown className="h-3 w-3" />
+                    )}
+                    {month.variance >= 0 ? '+' : ''}£{month.variance.toFixed(0)}
+                  </div>
                 </div>
               </div>
-            );
-          })
+            </div>
+          ))
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             No financial data available for {selectedYear}
