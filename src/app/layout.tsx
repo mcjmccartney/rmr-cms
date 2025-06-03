@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   title: 'RMR CMS - Raising My Rescue',
   description: 'Content Management System for dog behaviorist practice - Track clients, sessions, and finances',
   manifest: '/manifest.json',
-  themeColor: '#4f6749',
+  themeColor: '#ffffff',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

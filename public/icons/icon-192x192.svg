@@ -1,4 +1,17 @@
 <svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
-  <rect width="192" height="192" fill="#4f6749" rx="19.200000000000003"/>
-  <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="57.599999999999994" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="central">RMR</text>
+  <rect width="192" height="192" fill="#4f6749" rx="19.2"/>
+
+  <!-- Paw print design -->
+  <!-- Main pad -->
+  <ellipse cx="144" cy="130" rx="24" ry="32" fill="#B85450"/>
+
+  <!-- Toe pads -->
+  <ellipse cx="115" cy="85" rx="12" ry="18" fill="#B85450"/>
+  <ellipse cx="144" cy="75" rx="14" ry="20" fill="#B85450"/>
+  <ellipse cx="173" cy="85" rx="12" ry="18" fill="#B85450"/>
+
+  <!-- RMR text -->
+  <text x="48" y="120" font-family="serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="central">R</text>
+  <text x="96" y="120" font-family="serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="central">M</text>
+  <text x="144" y="120" font-family="serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="central">R</text>
 </svg>
