@@ -550,7 +550,7 @@ export default function SessionsPage() {
       clientId: data.clientId,
       clientName: `${selectedClient.ownerFirstName} ${selectedClient.ownerLastName}`,
       dogName: selectedClient.dogName || undefined,
-      email: selectedClient.contactEmail, // Add client email for payment matching
+      // No need to store email - we'll use JOIN with clients table for payment matching
       date: format(data.date, 'yyyy-MM-dd'),
       time: data.time,
       sessionType: data.sessionType,

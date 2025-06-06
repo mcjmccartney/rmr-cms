@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
       if (!sessionId && customerEmail) {
         console.log('🔄 No sessionId found, attempting email-based session matching for:', customerEmail);
 
-        // Call the simple payment endpoint internally
+        // Call the simple payment endpoint internally (uses JOIN with clients table)
         try {
           const response = await fetch('https://rmr-cms.vercel.app/api/stripe/simple-payment', {
             method: 'POST',
@@ -231,11 +231,11 @@ export async function POST(request: NextRequest) {
 
           if (response.ok) {
             const result = await response.json();
-            console.log('✅ Email-based session update successful:', result);
+            console.log('✅ Email-based session update successful via client JOIN:', result);
             return NextResponse.json({
               success: true,
               message: `Session marked as paid via email matching for ${customerEmail}`,
-              method: 'email-based',
+              method: 'email-based-join',
               sessionId: result.sessionId,
               customerEmail: customerEmail,
               session: result.session

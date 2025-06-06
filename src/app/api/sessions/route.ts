@@ -77,7 +77,7 @@ async function addSession(session: any) {
       client_id: session.clientId,
       client_name: session.clientName,
       dog_name: session.dogName,
-      email: session.email || session.clientEmail, // Support both field names
+      // No email field needed - we'll use JOIN with clients table for payment matching
       booking: bookingTimestamp,
       session_type: session.sessionType,
       amount: session.amount,
@@ -103,7 +103,7 @@ async function addSession(session: any) {
       clientId: rawData.client_id,
       clientName: rawData.client_name,
       dogName: rawData.dog_name,
-      email: rawData.email,
+      // No email field - use JOIN with clients table when needed
       booking: rawData.booking,
       date: rawData.booking ? rawData.booking.split('T')[0] : null,
       time: rawData.booking ? rawData.booking.split('T')[1]?.split('.')[0]?.substring(0, 5) : null,

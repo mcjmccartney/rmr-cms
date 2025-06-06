@@ -13,15 +13,24 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-// Function to mark session as paid by email
+// Function to mark session as paid by email using JOIN with clients table
 async function markSessionAsPaidByEmail(customerEmail: string, sessionId?: string) {
-  console.log('💳 Finding unpaid session for email:', customerEmail);
+  console.log('💳 Finding unpaid session for email via client lookup:', customerEmail);
   const supabase = getSupabaseClient();
 
+  // Use JOIN to find sessions where the client's email matches
   let query = supabase
     .from('sessions')
-    .select('*')
-    .eq('email', customerEmail) // Use 'email' field from sessions table
+    .select(`
+      *,
+      clients!inner(
+        id,
+        contact_email,
+        owner_first_name,
+        owner_last_name
+      )
+    `)
+    .eq('clients.contact_email', customerEmail)
     .eq('deposit_paid', false)
     .order('created_at', { ascending: false }); // Get most recent first
 
@@ -48,7 +57,7 @@ async function markSessionAsPaidByEmail(customerEmail: string, sessionId?: strin
   console.log('✅ Found unpaid session to mark as paid:', {
     id: sessionToUpdate.id,
     clientName: sessionToUpdate.client_name,
-    clientEmail: sessionToUpdate.client_email,
+    clientEmail: sessionToUpdate.clients.contact_email,
     date: sessionToUpdate.date,
     time: sessionToUpdate.time,
     amount: sessionToUpdate.amount
@@ -193,13 +202,15 @@ export async function GET() {
       step4: 'Most recent unpaid session for that email will be marked as paid'
     },
     logic: {
-      description: 'Finds the most recent session where client_email matches and deposit_paid = false',
+      description: 'Uses JOIN to find sessions where clients.contact_email matches and deposit_paid = false',
       advantages: [
         'No need to track sessionIds in URLs',
         'Works with existing Stripe setup',
         'Handles multiple sessions gracefully',
-        'More intuitive customer matching'
-      ]
+        'More intuitive customer matching',
+        'No data duplication - uses normalized client email from clients table'
+      ],
+      query: 'SELECT sessions.*, clients.contact_email FROM sessions INNER JOIN clients ON sessions.client_id = clients.id WHERE clients.contact_email = ? AND sessions.deposit_paid = false'
     },
     testUrl: 'Send POST request to this URL with {"customerEmail": "customer@example.com"}'
   });
