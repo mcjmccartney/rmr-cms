@@ -13,29 +13,46 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-// Simple function to mark session as paid
-async function markSessionAsPaid(sessionId: string) {
-  console.log('💳 Marking session as paid:', sessionId);
+// Function to mark session as paid by email
+async function markSessionAsPaidByEmail(customerEmail: string, sessionId?: string) {
+  console.log('💳 Finding unpaid session for email:', customerEmail);
   const supabase = getSupabaseClient();
-  
-  // First, check if session exists
-  const { data: existingSession, error: findError } = await supabase
+
+  let query = supabase
     .from('sessions')
     .select('*')
-    .eq('id', sessionId)
-    .single();
+    .eq('client_email', customerEmail)
+    .eq('deposit_paid', false)
+    .order('created_at', { ascending: false }); // Get most recent first
 
-  if (findError && findError.code !== 'PGRST116') {
-    console.error('❌ Error finding session:', findError);
+  // If sessionId is provided, use it as additional filter
+  if (sessionId) {
+    console.log('🔍 Also filtering by sessionId:', sessionId);
+    query = query.eq('id', sessionId);
+  }
+
+  const { data: unpaidSessions, error: findError } = await query;
+
+  if (findError) {
+    console.error('❌ Error finding unpaid sessions:', findError);
     throw findError;
   }
 
-  if (!existingSession) {
-    console.error('❌ Session not found:', sessionId);
-    throw new Error(`Session with ID ${sessionId} not found`);
+  if (!unpaidSessions || unpaidSessions.length === 0) {
+    console.error('❌ No unpaid sessions found for email:', customerEmail);
+    throw new Error(`No unpaid sessions found for email ${customerEmail}`);
   }
 
-  console.log('✅ Found existing session:', existingSession.id);
+  // Take the most recent unpaid session
+  const sessionToUpdate = unpaidSessions[0];
+  console.log('✅ Found unpaid session to mark as paid:', {
+    id: sessionToUpdate.id,
+    clientName: sessionToUpdate.client_name,
+    clientEmail: sessionToUpdate.client_email,
+    date: sessionToUpdate.date,
+    time: sessionToUpdate.time,
+    amount: sessionToUpdate.amount
+  });
 
   // Update session as paid
   const sessionUpdateFields = {
@@ -51,7 +68,7 @@ async function markSessionAsPaid(sessionId: string) {
   const { data: updatedSession, error: updateError } = await supabase
     .from('sessions')
     .update(sessionUpdateFields)
-    .eq('id', sessionId)
+    .eq('id', sessionToUpdate.id)
     .select()
     .single();
 
@@ -72,31 +89,37 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('📨 Request body:', JSON.stringify(body, null, 2));
 
-    // Extract sessionId from various possible fields
+    // Extract email and optional sessionId from request
+    const customerEmail = body.customerEmail || body.customer_email || body.email;
     const sessionId = body.sessionId || body.session_id || body.id || body.metadata?.sessionId;
 
-    if (!sessionId) {
-      console.error('❌ Missing sessionId in request');
+    if (!customerEmail) {
+      console.error('❌ Missing customerEmail in request');
       return NextResponse.json(
-        { 
-          error: 'Missing sessionId. Please provide sessionId in request body.',
-          receivedData: body
+        {
+          error: 'Missing customerEmail. Please provide customerEmail in request body.',
+          receivedData: body,
+          expectedFields: ['customerEmail', 'customer_email', 'email']
         },
         { status: 400 }
       );
     }
 
-    console.log('🔄 Processing payment for sessionId:', sessionId);
+    console.log('🔄 Processing payment for email:', customerEmail);
+    if (sessionId) {
+      console.log('🔍 Also checking sessionId:', sessionId);
+    }
 
-    // Mark session as paid
-    const updatedSession = await markSessionAsPaid(sessionId);
+    // Mark session as paid by email
+    const updatedSession = await markSessionAsPaidByEmail(customerEmail, sessionId);
 
     console.log('✅ Payment processed successfully');
 
     return NextResponse.json({
       success: true,
-      message: `Session ${sessionId} marked as paid successfully`,
+      message: `Session ${updatedSession.id} marked as paid successfully for ${customerEmail}`,
       sessionId: updatedSession.id,
+      customerEmail: customerEmail,
       depositPaid: updatedSession.deposit_paid,
       paymentStatus: updatedSession.payment_status,
       paymentDate: updatedSession.payment_date,
@@ -141,29 +164,43 @@ export async function GET() {
       '4. Session is marked as deposit_paid = true'
     ],
     expectedData: {
-      sessionId: 'session_12345 (required)',
+      customerEmail: 'customer@example.com (required)',
       // Alternative field names also supported:
-      session_id: 'session_12345',
-      id: 'session_12345',
-      'metadata.sessionId': 'session_12345'
+      customer_email: 'customer@example.com',
+      email: 'customer@example.com',
+      // Optional sessionId for additional filtering:
+      sessionId: 'session_12345 (optional)',
+      session_id: 'session_12345 (optional)'
     },
     examples: {
-      simple: {
+      byEmailOnly: {
+        customerEmail: 'john@example.com'
+      },
+      byEmailAndSession: {
+        customerEmail: 'john@example.com',
         sessionId: '0a61175c-977d-4574-ac49-071c9e51ae86'
       },
-      withMetadata: {
-        sessionId: '0a61175c-977d-4574-ac49-071c9e51ae86',
+      stripeWebhookFormat: {
+        customer_email: 'john@example.com',
         stripeSessionId: 'cs_1234567890',
-        amount: 75.00,
-        customerEmail: 'customer@example.com'
+        amount: 75.00
       }
     },
     makeComIntegration: {
-      step1: 'Add Stripe webhook module to watch for payment.succeeded events',
-      step2: 'Extract sessionId from the original payment URL or metadata',
-      step3: 'Send HTTP POST request to this endpoint with sessionId',
-      step4: 'Session will be automatically marked as paid'
+      step1: 'Add Stripe webhook module to watch for checkout.session.completed events',
+      step2: 'Extract customer email from Stripe event (customer_details.email)',
+      step3: 'Send HTTP POST request to this endpoint with customerEmail',
+      step4: 'Most recent unpaid session for that email will be marked as paid'
     },
-    testUrl: 'Send POST request to this URL with {"sessionId": "your-session-id"}'
+    logic: {
+      description: 'Finds the most recent session where client_email matches and deposit_paid = false',
+      advantages: [
+        'No need to track sessionIds in URLs',
+        'Works with existing Stripe setup',
+        'Handles multiple sessions gracefully',
+        'More intuitive customer matching'
+      ]
+    },
+    testUrl: 'Send POST request to this URL with {"customerEmail": "customer@example.com"}'
   });
 }

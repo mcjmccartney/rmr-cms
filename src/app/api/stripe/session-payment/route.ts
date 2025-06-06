@@ -204,6 +204,8 @@ export async function POST(request: NextRequest) {
 
       // Create payment data from Stripe event
       const stripeObject = requestData.data.object;
+      const customerEmail = stripeObject.customer_details?.email || stripeObject.customer_email;
+
       paymentData = {
         sessionId,
         paymentStatus: requestData.type === 'checkout.session.completed' ? 'succeeded' :
@@ -211,9 +213,38 @@ export async function POST(request: NextRequest) {
         paymentIntentId: stripeObject.payment_intent || stripeObject.id,
         amount: stripeObject.amount_total ? stripeObject.amount_total / 100 : stripeObject.amount ? stripeObject.amount / 100 : undefined,
         currency: stripeObject.currency,
-        customerEmail: stripeObject.customer_details?.email || stripeObject.customer_email,
+        customerEmail: customerEmail,
         paymentDate: new Date().toISOString().split('T')[0]
       };
+
+      // If we couldn't extract sessionId but have customerEmail, try email-based matching
+      if (!sessionId && customerEmail) {
+        console.log('🔄 No sessionId found, attempting email-based session matching for:', customerEmail);
+
+        // Call the simple payment endpoint internally
+        try {
+          const response = await fetch('https://rmr-cms.vercel.app/api/stripe/simple-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerEmail: customerEmail })
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Email-based session update successful:', result);
+            return NextResponse.json({
+              success: true,
+              message: `Session marked as paid via email matching for ${customerEmail}`,
+              method: 'email-based',
+              sessionId: result.sessionId,
+              customerEmail: customerEmail,
+              session: result.session
+            });
+          }
+        } catch (emailError) {
+          console.error('❌ Email-based session update failed:', emailError);
+        }
+      }
     } else {
       // Handle direct API call (existing format)
       paymentData = requestData as StripeSessionPaymentData;
