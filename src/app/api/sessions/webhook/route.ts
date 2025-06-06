@@ -25,6 +25,10 @@ interface SessionUpdateData {
   amount?: number;
   notes?: string;
   status?: string;
+  depositPaid?: boolean;
+  paymentStatus?: string;
+  paymentDate?: string;
+  paymentIntentId?: string;
 }
 
 // Function to find and update session
@@ -63,6 +67,10 @@ async function updateSessionById(sessionId: string, updateData: Partial<SessionU
   if (updateData.amount !== undefined) sessionUpdateFields.amount = updateData.amount;
   if (updateData.notes !== undefined) sessionUpdateFields.notes = updateData.notes;
   if (updateData.status !== undefined) sessionUpdateFields.status = updateData.status;
+  if (updateData.depositPaid !== undefined) sessionUpdateFields.deposit_paid = updateData.depositPaid;
+  if (updateData.paymentStatus !== undefined) sessionUpdateFields.payment_status = updateData.paymentStatus;
+  if (updateData.paymentDate !== undefined) sessionUpdateFields.payment_date = updateData.paymentDate;
+  if (updateData.paymentIntentId !== undefined) sessionUpdateFields.payment_intent_id = updateData.paymentIntentId;
 
   // Add updated timestamp
   sessionUpdateFields.updated_at = new Date().toISOString();
@@ -165,7 +173,11 @@ export async function GET() {
       sessionType: 'In-Person (optional)',
       amount: '75.00 (optional)',
       notes: 'Session notes (optional)',
-      status: 'confirmed/cancelled/completed (optional)'
+      status: 'confirmed/cancelled/completed (optional)',
+      depositPaid: 'true/false (optional)',
+      paymentStatus: 'paid/pending/failed (optional)',
+      paymentDate: '2025-01-15 (optional)',
+      paymentIntentId: 'pi_1234567890 (optional)'
     },
     examples: {
       updateAmount: {
@@ -189,6 +201,13 @@ export async function GET() {
         amount: 85.00,
         status: 'confirmed',
         notes: 'Rescheduled and confirmed'
+      },
+      markDepositPaid: {
+        sessionId: 'session_12345',
+        depositPaid: true,
+        paymentStatus: 'paid',
+        paymentDate: '2025-01-15',
+        paymentIntentId: 'pi_1234567890'
       }
     },
     notes: [
