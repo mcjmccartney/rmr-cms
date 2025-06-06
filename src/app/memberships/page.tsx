@@ -373,7 +373,14 @@ export default function MembershipsPage() {
                     <div className="space-y-3">
                       <h3 className="font-medium">Members ({monthMembers.length})</h3>
                       <div className="space-y-2">
-                        {monthMembers.map((membership) => (
+                        {monthMembers
+                          .sort((a, b) => {
+                            // Sort by date ascending (earliest first, latest last)
+                            const dateA = new Date(a.date);
+                            const dateB = new Date(b.date);
+                            return dateA.getTime() - dateB.getTime();
+                          })
+                          .map((membership) => (
                           <div key={membership.id} className="p-3 border rounded-lg">
                             <div className="flex justify-between items-start">
                               <div>
