@@ -6,7 +6,7 @@ import type { Session, Client, BehaviouralBrief, BehaviourQuestionnaire } from '
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { format, parseISO, isValid, parse } from 'date-fns';
-import { Edit, Trash2, Clock, CalendarDays as CalendarIconLucide, DollarSign, MoreHorizontal, Loader2, Info, Tag as TagIcon, ChevronLeft, CalendarPlus, Search, X, Check } from 'lucide-react';
+import { Edit, Trash2, Clock, CalendarDays as CalendarIconLucide, DollarSign, MoreHorizontal, Loader2, Info, Tag as TagIcon, ChevronLeft, CalendarPlus, Search, X, Check, User } from 'lucide-react';
 import Image from 'next/image';
 import {
   Sheet,
@@ -27,6 +27,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -153,6 +155,27 @@ const getBehaviourQuestionnaire = async (id: string) => {
   return response.json();
 };
 
+const updateClient = async (id: string, updateData: any) => {
+  try {
+    const response = await fetch(`/api/clients/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updateData),
+    });
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.warn(`Client with ID ${id} not found`);
+        throw new Error('Client not found');
+      }
+      throw new Error(`Failed to update client: ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error updating client:', error);
+    throw error;
+  }
+};
+
 const sessionFormSchema = z.object({
   clientId: z.string().min(1, { message: "Client selection is required." }),
   date: z.date({ required_error: "Booking Date is required." }),
@@ -165,6 +188,21 @@ const sessionFormSchema = z.object({
 });
 
 type SessionFormValues = z.infer<typeof sessionFormSchema>;
+
+// Client form schema for editing
+const clientFormSchema = z.object({
+  ownerFirstName: z.string().min(1, { message: "First name is required." }),
+  ownerLastName: z.string().min(1, { message: "Last name is required." }),
+  dogName: z.string().optional(),
+  contactEmail: z.string().email({ message: "Invalid email address." }).optional().or(z.literal('')),
+  contactNumber: z.string().optional(),
+  fullAddress: z.string().optional(),
+  postcode: z.string().optional(),
+  isMember: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+});
+
+type ClientFormValues = z.infer<typeof clientFormSchema>;
 
 const sessionTypeOptions = [
   "In-Person",
@@ -227,6 +265,10 @@ export default function SessionsPage() {
   // Track if user has manually edited the price to prevent auto-overwrite
   const [hasManuallyEditedAddPrice, setHasManuallyEditedAddPrice] = useState(false);
   const [hasManuallyEditedEditPrice, setHasManuallyEditedEditPrice] = useState(false);
+
+  // Client editing state
+  const [isEditClientSheetOpen, setIsEditClientSheetOpen] = useState(false);
+  const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
 
 
 
@@ -305,6 +347,30 @@ export default function SessionsPage() {
     handleSubmit: handleEditSessionSubmitHook,
   } = editSessionForm;
 
+  // Client editing form
+  const editClientForm = useForm<ClientFormValues>({
+    resolver: zodResolver(clientFormSchema),
+    defaultValues: {
+      ownerFirstName: '',
+      ownerLastName: '',
+      dogName: '',
+      contactEmail: '',
+      contactNumber: '',
+      fullAddress: '',
+      postcode: '',
+      isMember: false,
+      isActive: true,
+    }
+  });
+
+  const {
+    control: editClientFormControl,
+    reset: resetEditClientForm,
+    formState: { errors: editClientFormErrors },
+    handleSubmit: handleEditClientSubmitHook,
+    register: editClientFormRegister,
+  } = editClientForm;
+
   useEffect(() => {
     if (isEditSessionSheetOpen && sessionToEdit) {
       resetEditSessionForm({
@@ -337,6 +403,23 @@ export default function SessionsPage() {
       }
     }
   }, [isEditSessionSheetOpen, watchedClientIdForEditSession, watchedSessionTypeForEditSession, clients, setEditSessionValue, hasManuallyEditedEditPrice]);
+
+  // Client editing useEffect
+  useEffect(() => {
+    if (clientToEdit) {
+      resetEditClientForm({
+        ownerFirstName: clientToEdit.ownerFirstName,
+        ownerLastName: clientToEdit.ownerLastName,
+        dogName: clientToEdit.dogName || '',
+        contactEmail: clientToEdit.contactEmail,
+        contactNumber: clientToEdit.contactNumber || '',
+        fullAddress: clientToEdit.fullAddress || '',
+        postcode: clientToEdit.postcode,
+        isMember: clientToEdit.isMember || false,
+        isActive: clientToEdit.isActive === undefined ? true : clientToEdit.isActive,
+      });
+    }
+  }, [clientToEdit, resetEditClientForm]);
 
  useEffect(() => {
     if (isSessionSheetOpen && selectedSessionForSheet && selectedSessionForSheet.clientId) {
@@ -701,6 +784,60 @@ export default function SessionsPage() {
     }
   };
 
+  // Handle client update
+  const handleUpdateClient: SubmitHandler<ClientFormValues> = async (data) => {
+    if (!clientToEdit) return;
+    setIsSubmittingSheet(true);
+    try {
+      const updateData = {
+        ownerFirstName: data.ownerFirstName,
+        ownerLastName: data.ownerLastName,
+        dogName: data.dogName || undefined,
+        contactEmail: data.contactEmail || undefined,
+        contactNumber: data.contactNumber || undefined,
+        fullAddress: data.fullAddress || undefined,
+        postcode: data.postcode || undefined,
+        isMember: data.isMember || false,
+        isActive: data.isActive === undefined ? true : data.isActive,
+      };
+
+      await updateClient(clientToEdit.id, updateData);
+
+      // Update clients state
+      setClients(prevClients =>
+        prevClients.map(c =>
+          c.id === clientToEdit.id
+            ? { ...c, ...updateData }
+            : c
+        ).sort((a, b) => {
+          const nameA = formatFullNameAndDogName(`${a.ownerFirstName} ${a.ownerLastName}`, a.dogName).toLowerCase();
+          const nameB = formatFullNameAndDogName(`${b.ownerFirstName} ${b.ownerLastName}`, b.dogName).toLowerCase();
+          if (nameA < nameB) return -1;
+          if (nameA > nameB) return 1;
+          return 0;
+        })
+      );
+
+      // Update clientForSelectedSession if it's the same client
+      if (clientForSelectedSession && clientForSelectedSession.id === clientToEdit.id) {
+        setClientForSelectedSession({ ...clientForSelectedSession, ...updateData });
+      }
+
+      setIsEditClientSheetOpen(false);
+      setClientToEdit(null);
+
+      toast({
+        title: "Client Updated",
+        description: `${data.ownerFirstName} ${data.ownerLastName}'s details have been updated.`,
+      });
+    } catch (err) {
+      console.error("Error updating client:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to update client.";
+      toast({ title: "Error Updating Client", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsSubmittingSheet(false);
+    }
+  };
 
   const currentYear = new Date().getFullYear();
   const groupedByYear = groupSessionsByYear(filteredSessions);
@@ -1307,6 +1444,24 @@ export default function SessionsPage() {
             </ScrollArea>
             <SheetFooter className="border-t pt-4">
                 <div className="flex w-full gap-2">
+                    {/* Edit Client Button - only show for non-group sessions */}
+                    {selectedSessionForSheet &&
+                     selectedSessionForSheet.sessionType !== 'Group' &&
+                     selectedSessionForSheet.sessionType !== 'RMR Live' &&
+                     clientForSelectedSession && (
+                        <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                                setClientToEdit(clientForSelectedSession);
+                                setIsEditClientSheetOpen(true);
+                                setIsSessionSheetOpen(false);
+                            }}
+                        >
+                            <User className="mr-2 h-4 w-4" />
+                            Edit Client
+                        </Button>
+                    )}
                     <Button
                         variant="outline"
                         className="flex-1"
@@ -1476,6 +1631,142 @@ export default function SessionsPage() {
           <SheetFooter className="border-t pt-4">
             <Button type="submit" form="editSessionFormInSheetSessions" className="w-full" disabled={isSubmittingSheet}>
               {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Changes
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit Client Sheet */}
+      <Sheet open={isEditClientSheetOpen} onOpenChange={(isOpen) => {setIsEditClientSheetOpen(isOpen); if(!isOpen) setClientToEdit(null); }}>
+        <SheetContent className="flex flex-col h-full sm:max-w-md bg-card">
+          <SheetHeader>
+            <SheetTitle>Edit Client</SheetTitle>
+            <Separator />
+          </SheetHeader>
+          <ScrollArea className="flex-1">
+            <div className="py-4 space-y-4">
+            {clientToEdit && (
+              <form onSubmit={handleEditClientSubmitHook(handleUpdateClient)} id="editClientFormInSheetSessions" className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-ownerFirstName-sessions">First Name</Label>
+                  <Input
+                    id="edit-ownerFirstName-sessions"
+                    {...editClientFormRegister("ownerFirstName")}
+                    className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", editClientFormErrors.ownerFirstName ? "border-destructive" : "")}
+                    disabled={isSubmittingSheet}
+                  />
+                  {editClientFormErrors.ownerFirstName && <p className="text-xs text-destructive mt-1">{editClientFormErrors.ownerFirstName.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-ownerLastName-sessions">Last Name</Label>
+                  <Input
+                    id="edit-ownerLastName-sessions"
+                    {...editClientFormRegister("ownerLastName")}
+                    className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", editClientFormErrors.ownerLastName ? "border-destructive" : "")}
+                    disabled={isSubmittingSheet}
+                  />
+                  {editClientFormErrors.ownerLastName && <p className="text-xs text-destructive mt-1">{editClientFormErrors.ownerLastName.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-dogName-sessions">Dog's Name</Label>
+                  <Input
+                    id="edit-dogName-sessions"
+                    {...editClientFormRegister("dogName")}
+                    className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", editClientFormErrors.dogName ? "border-destructive" : "")}
+                    disabled={isSubmittingSheet}
+                  />
+                  {editClientFormErrors.dogName && <p className="text-xs text-destructive mt-1">{editClientFormErrors.dogName.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-contactEmail-sessions">Email</Label>
+                  <Input
+                    id="edit-contactEmail-sessions"
+                    type="email"
+                    {...editClientFormRegister("contactEmail")}
+                    className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", editClientFormErrors.contactEmail ? "border-destructive" : "")}
+                    disabled={isSubmittingSheet}
+                  />
+                  {editClientFormErrors.contactEmail && <p className="text-xs text-destructive mt-1">{editClientFormErrors.contactEmail.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-contactNumber-sessions">Phone Number</Label>
+                  <Input
+                    id="edit-contactNumber-sessions"
+                    type="tel"
+                    {...editClientFormRegister("contactNumber")}
+                    className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", editClientFormErrors.contactNumber ? "border-destructive" : "")}
+                    disabled={isSubmittingSheet}
+                  />
+                  {editClientFormErrors.contactNumber && <p className="text-xs text-destructive mt-1">{editClientFormErrors.contactNumber.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-fullAddress-sessions">Address</Label>
+                  <Textarea
+                    id="edit-fullAddress-sessions"
+                    {...editClientFormRegister("fullAddress")}
+                    className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", editClientFormErrors.fullAddress ? "border-destructive" : "")}
+                    disabled={isSubmittingSheet}
+                    rows={3}
+                  />
+                  {editClientFormErrors.fullAddress && <p className="text-xs text-destructive mt-1">{editClientFormErrors.fullAddress.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-postcode-sessions">Postcode</Label>
+                  <Input
+                    id="edit-postcode-sessions"
+                    {...editClientFormRegister("postcode")}
+                    className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", editClientFormErrors.postcode ? "border-destructive" : "")}
+                    disabled={isSubmittingSheet}
+                  />
+                  {editClientFormErrors.postcode && <p className="text-xs text-destructive mt-1">{editClientFormErrors.postcode.message}</p>}
+                </div>
+                <div className="flex items-center space-x-4 pt-2">
+                  <div className="flex items-center space-x-2">
+                    <Controller
+                      name="isMember"
+                      control={editClientFormControl}
+                      render={({ field }) => (
+                        <Checkbox
+                          id="edit-isMember-sessions"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={isSubmittingSheet}
+                          className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                        />
+                      )}
+                    />
+                    <Label htmlFor="edit-isMember-sessions" className="text-sm font-normal">Membership</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Controller
+                      name="isActive"
+                      control={editClientFormControl}
+                      render={({ field }) => (
+                        <Checkbox
+                          id="edit-isActive-sessions"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={isSubmittingSheet}
+                          className="focus-visible:ring-0 focus-visible:ring-offset-0"
+                        />
+                      )}
+                    />
+                    <Label htmlFor="edit-isActive-sessions" className="text-sm font-normal">Active</Label>
+                  </div>
+                </div>
+              </form>
+              )}
+            </div>
+          </ScrollArea>
+          <SheetFooter className="border-t pt-4">
+            <Button
+              type="submit"
+              form="editClientFormInSheetSessions"
+              className="w-full focus-visible:ring-0 focus-visible:ring-offset-0"
+              disabled={isSubmittingSheet}
+            >
+              {isSubmittingSheet && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
             </Button>
           </SheetFooter>
         </SheetContent>

@@ -375,10 +375,10 @@ export default function MembershipsPage() {
                       <div className="space-y-2">
                         {monthMembers
                           .sort((a, b) => {
-                            // Sort by date ascending (earliest first, latest last)
+                            // Sort by date descending (most recent first, earliest last)
                             const dateA = new Date(a.date);
                             const dateB = new Date(b.date);
-                            return dateA.getTime() - dateB.getTime();
+                            return dateB.getTime() - dateA.getTime();
                           })
                           .map((membership) => (
                           <div key={membership.id} className="p-3 border rounded-lg">
