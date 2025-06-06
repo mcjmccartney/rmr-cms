@@ -13,43 +13,112 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-// Function to mark session as paid by email using JOIN with clients table
-async function markSessionAsPaidByEmail(customerEmail: string, sessionId?: string) {
-  console.log('💳 Finding unpaid session for email via client lookup:', customerEmail);
+// Enhanced function with multiple matching strategies
+async function markSessionAsPaidByMultipleFields(paymentData: {
+  customerEmail?: string;
+  customerName?: string;
+  customerPhone?: string;
+  dogName?: string;
+  sessionId?: string;
+}) {
+  console.log('💳 Finding unpaid session using multiple matching strategies:', paymentData);
   const supabase = getSupabaseClient();
 
-  // Use JOIN to find sessions where the client's email matches
-  let query = supabase
-    .from('sessions')
-    .select(`
-      *,
-      clients!inner(
-        id,
-        contact_email,
-        owner_first_name,
-        owner_last_name
-      )
-    `)
-    .eq('clients.contact_email', customerEmail)
-    .eq('deposit_paid', false)
-    .order('created_at', { ascending: false }); // Get most recent first
+  let unpaidSessions: any[] = [];
 
-  // If sessionId is provided, use it as additional filter
-  if (sessionId) {
-    console.log('🔍 Also filtering by sessionId:', sessionId);
-    query = query.eq('id', sessionId);
+  // Strategy 1: Email matching (primary)
+  if (paymentData.customerEmail && unpaidSessions.length === 0) {
+    console.log('🔍 Trying email matching:', paymentData.customerEmail);
+    const { data, error } = await supabase
+      .from('sessions')
+      .select(`
+        *,
+        clients!inner(
+          id,
+          contact_email,
+          owner_first_name,
+          owner_last_name,
+          contact_number,
+          dog_name,
+          is_member
+        )
+      `)
+      .eq('clients.contact_email', paymentData.customerEmail)
+      .eq('deposit_paid', false)
+      .order('created_at', { ascending: false });
+
+    if (!error && data && data.length > 0) {
+      unpaidSessions = data;
+      console.log('✅ Found sessions via email matching:', unpaidSessions.length);
+    }
   }
 
-  const { data: unpaidSessions, error: findError } = await query;
+  // Strategy 2: Phone number matching (fallback)
+  if (paymentData.customerPhone && unpaidSessions.length === 0) {
+    console.log('🔍 Trying phone matching:', paymentData.customerPhone);
+    const { data, error } = await supabase
+      .from('sessions')
+      .select(`
+        *,
+        clients!inner(
+          id,
+          contact_email,
+          owner_first_name,
+          owner_last_name,
+          contact_number,
+          dog_name,
+          is_member
+        )
+      `)
+      .eq('clients.contact_number', paymentData.customerPhone)
+      .eq('deposit_paid', false)
+      .order('created_at', { ascending: false });
 
-  if (findError) {
-    console.error('❌ Error finding unpaid sessions:', findError);
-    throw findError;
+    if (!error && data && data.length > 0) {
+      unpaidSessions = data;
+      console.log('✅ Found sessions via phone matching:', unpaidSessions.length);
+    }
   }
 
-  if (!unpaidSessions || unpaidSessions.length === 0) {
-    console.error('❌ No unpaid sessions found for email:', customerEmail);
-    throw new Error(`No unpaid sessions found for email ${customerEmail}`);
+  // Strategy 3: Name matching (fallback)
+  if (paymentData.customerName && unpaidSessions.length === 0) {
+    console.log('🔍 Trying name matching:', paymentData.customerName);
+    const { data, error } = await supabase
+      .from('sessions')
+      .select(`
+        *,
+        clients!inner(
+          id,
+          contact_email,
+          owner_first_name,
+          owner_last_name,
+          contact_number,
+          dog_name,
+          is_member
+        )
+      `)
+      .ilike('clients.owner_first_name', `%${paymentData.customerName.split(' ')[0]}%`)
+      .eq('deposit_paid', false)
+      .order('created_at', { ascending: false });
+
+    if (!error && data && data.length > 0) {
+      unpaidSessions = data;
+      console.log('✅ Found sessions via name matching:', unpaidSessions.length);
+    }
+  }
+
+  if (unpaidSessions.length === 0) {
+    console.error('❌ No unpaid sessions found with any matching strategy');
+    throw new Error(`No unpaid sessions found for provided customer data`);
+  }
+
+  // If sessionId is provided, filter to that specific session
+  if (paymentData.sessionId) {
+    console.log('🔍 Filtering by specific sessionId:', paymentData.sessionId);
+    unpaidSessions = unpaidSessions.filter(s => s.id === paymentData.sessionId);
+    if (unpaidSessions.length === 0) {
+      throw new Error(`Session ${paymentData.sessionId} not found or already paid`);
+    }
   }
 
   // Take the most recent unpaid session
@@ -58,9 +127,12 @@ async function markSessionAsPaidByEmail(customerEmail: string, sessionId?: strin
     id: sessionToUpdate.id,
     clientName: sessionToUpdate.client_name,
     clientEmail: sessionToUpdate.clients.contact_email,
+    clientPhone: sessionToUpdate.clients.contact_number,
+    dogName: sessionToUpdate.clients.dog_name,
     date: sessionToUpdate.date,
     time: sessionToUpdate.time,
-    amount: sessionToUpdate.amount
+    amount: sessionToUpdate.amount,
+    isMember: sessionToUpdate.clients.is_member
   });
 
   // Update session as paid
@@ -98,37 +170,55 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('📨 Request body:', JSON.stringify(body, null, 2));
 
-    // Extract email and optional sessionId from request
-    const customerEmail = body.customerEmail || body.customer_email || body.email;
-    const sessionId = body.sessionId || body.session_id || body.id || body.metadata?.sessionId;
+    // Extract multiple possible matching fields from request
+    const paymentData = {
+      customerEmail: body.customerEmail || body.customer_email || body.email,
+      customerName: body.customerName || body.customer_name || body.name,
+      customerPhone: body.customerPhone || body.customer_phone || body.phone,
+      dogName: body.dogName || body.dog_name,
+      sessionId: body.sessionId || body.session_id || body.id || body.metadata?.sessionId
+    };
 
-    if (!customerEmail) {
-      console.error('❌ Missing customerEmail in request');
+    // Check if we have at least one matching field
+    if (!paymentData.customerEmail && !paymentData.customerName && !paymentData.customerPhone && !paymentData.dogName) {
+      console.error('❌ Missing customer identification data in request');
       return NextResponse.json(
         {
-          error: 'Missing customerEmail. Please provide customerEmail in request body.',
+          error: 'Missing customer identification data. Please provide at least one: customerEmail, customerName, customerPhone, or dogName.',
           receivedData: body,
-          expectedFields: ['customerEmail', 'customer_email', 'email']
+          expectedFields: {
+            primary: ['customerEmail', 'customer_email', 'email'],
+            fallback: ['customerName', 'customer_name', 'name', 'customerPhone', 'customer_phone', 'phone', 'dogName', 'dog_name']
+          }
         },
         { status: 400 }
       );
     }
 
-    console.log('🔄 Processing payment for email:', customerEmail);
-    if (sessionId) {
-      console.log('🔍 Also checking sessionId:', sessionId);
-    }
+    console.log('🔄 Processing payment with data:', {
+      email: paymentData.customerEmail,
+      name: paymentData.customerName,
+      phone: paymentData.customerPhone,
+      dogName: paymentData.dogName,
+      sessionId: paymentData.sessionId
+    });
 
-    // Mark session as paid by email
-    const updatedSession = await markSessionAsPaidByEmail(customerEmail, sessionId);
+    // Mark session as paid using multiple matching strategies
+    const updatedSession = await markSessionAsPaidByMultipleFields(paymentData);
 
     console.log('✅ Payment processed successfully');
 
     return NextResponse.json({
       success: true,
-      message: `Session ${updatedSession.id} marked as paid successfully for ${customerEmail}`,
+      message: `Session ${updatedSession.id} marked as paid successfully`,
       sessionId: updatedSession.id,
-      customerEmail: customerEmail,
+      matchedBy: paymentData.customerEmail ? 'email' : paymentData.customerPhone ? 'phone' : paymentData.customerName ? 'name' : 'other',
+      customerData: {
+        email: paymentData.customerEmail,
+        name: paymentData.customerName,
+        phone: paymentData.customerPhone,
+        dogName: paymentData.dogName
+      },
       depositPaid: updatedSession.deposit_paid,
       paymentStatus: updatedSession.payment_status,
       paymentDate: updatedSession.payment_date,
@@ -173,10 +263,19 @@ export async function GET() {
       '4. Session is marked as deposit_paid = true'
     ],
     expectedData: {
-      customerEmail: 'customer@example.com (required)',
+      // Primary matching (at least one required):
+      customerEmail: 'customer@example.com (primary)',
+      customerName: 'John Smith (fallback)',
+      customerPhone: '+44123456789 (fallback)',
+      dogName: 'Buddy (fallback)',
       // Alternative field names also supported:
       customer_email: 'customer@example.com',
       email: 'customer@example.com',
+      customer_name: 'John Smith',
+      name: 'John Smith',
+      customer_phone: '+44123456789',
+      phone: '+44123456789',
+      dog_name: 'Buddy',
       // Optional sessionId for additional filtering:
       sessionId: 'session_12345 (optional)',
       session_id: 'session_12345 (optional)'
@@ -185,12 +284,24 @@ export async function GET() {
       byEmailOnly: {
         customerEmail: 'john@example.com'
       },
-      byEmailAndSession: {
+      byPhoneOnly: {
+        customerPhone: '+44123456789'
+      },
+      byNameOnly: {
+        customerName: 'John Smith'
+      },
+      byDogName: {
+        dogName: 'Buddy'
+      },
+      multipleFields: {
         customerEmail: 'john@example.com',
+        customerName: 'John Smith',
         sessionId: '0a61175c-977d-4574-ac49-071c9e51ae86'
       },
       stripeWebhookFormat: {
         customer_email: 'john@example.com',
+        customer_name: 'John Smith',
+        customer_phone: '+44123456789',
         stripeSessionId: 'cs_1234567890',
         amount: 75.00
       }
@@ -202,15 +313,27 @@ export async function GET() {
       step4: 'Most recent unpaid session for that email will be marked as paid'
     },
     logic: {
-      description: 'Uses JOIN to find sessions where clients.contact_email matches and deposit_paid = false',
+      description: 'Uses multiple JOIN strategies to find sessions where client data matches and deposit_paid = false',
+      matchingStrategies: [
+        '1. Email matching (primary): clients.contact_email = customerEmail',
+        '2. Phone matching (fallback): clients.contact_number = customerPhone',
+        '3. Name matching (fallback): clients.owner_first_name ILIKE customerName',
+        '4. Dog name matching (fallback): clients.dog_name = dogName'
+      ],
       advantages: [
+        'Multiple fallback matching strategies',
         'No need to track sessionIds in URLs',
         'Works with existing Stripe setup',
         'Handles multiple sessions gracefully',
         'More intuitive customer matching',
-        'No data duplication - uses normalized client email from clients table'
+        'No data duplication - uses normalized client data from clients table',
+        'Robust matching even with partial customer information'
       ],
-      query: 'SELECT sessions.*, clients.contact_email FROM sessions INNER JOIN clients ON sessions.client_id = clients.id WHERE clients.contact_email = ? AND sessions.deposit_paid = false'
+      queries: {
+        email: 'SELECT sessions.*, clients.* FROM sessions INNER JOIN clients ON sessions.client_id = clients.id WHERE clients.contact_email = ? AND sessions.deposit_paid = false',
+        phone: 'SELECT sessions.*, clients.* FROM sessions INNER JOIN clients ON sessions.client_id = clients.id WHERE clients.contact_number = ? AND sessions.deposit_paid = false',
+        name: 'SELECT sessions.*, clients.* FROM sessions INNER JOIN clients ON sessions.client_id = clients.id WHERE clients.owner_first_name ILIKE ? AND sessions.deposit_paid = false'
+      }
     },
     testUrl: 'Send POST request to this URL with {"customerEmail": "customer@example.com"}'
   });
