@@ -74,20 +74,20 @@ class ServerSupabaseClient {
       const dbClient = {
         owner_first_name: client.ownerFirstName,
         owner_last_name: client.ownerLastName,
-        contact_email: client.contactEmail,
-        contact_number: client.contactNumber,
-        postcode: client.postcode,
-        full_address: client.fullAddress,
-        dog_name: client.dogName,
+        contact_email: client.contactEmail || null, // Allow NULL
+        contact_number: client.contactNumber || null, // Allow NULL
+        postcode: client.postcode || null, // Allow NULL - no longer required
+        full_address: client.fullAddress || null,
+        dog_name: client.dogName || null,
         is_member: client.isMember || false,
         is_active: client.isActive !== undefined ? client.isActive : true,
         submission_date: client.submissionDate,
         last_session: client.lastSession || 'N/A',
         next_session: client.nextSession || 'Not Scheduled',
-        behavioural_brief_id: client.behaviouralBriefId,
-        behaviour_questionnaire_id: client.behaviourQuestionnaireId,
-        address: client.address,
-        how_heard_about_services: client.howHeardAboutServices,
+        behavioural_brief_id: client.behaviouralBriefId || null,
+        behaviour_questionnaire_id: client.behaviourQuestionnaireId || null,
+        address: client.address || null,
+        how_heard_about_services: client.howHeardAboutServices || null,
       };
 
       const response = await fetch(`${this.baseUrl}/clients?select=*`, {

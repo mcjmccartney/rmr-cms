@@ -9,9 +9,9 @@ CREATE TABLE IF NOT EXISTS clients (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   owner_first_name TEXT NOT NULL,
   owner_last_name TEXT NOT NULL,
-  contact_email TEXT NOT NULL UNIQUE,
-  contact_number TEXT NOT NULL,
-  postcode TEXT NOT NULL,
+  contact_email TEXT, -- Made optional
+  contact_number TEXT, -- Made optional
+  postcode TEXT, -- Made optional
   full_address TEXT,
   dog_name TEXT,
   is_member BOOLEAN DEFAULT false,
@@ -25,6 +25,11 @@ CREATE TABLE IF NOT EXISTS clients (
   how_heard_about_services TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Create unique index for contact_email that allows NULLs
+CREATE UNIQUE INDEX IF NOT EXISTS clients_contact_email_unique
+ON clients (contact_email)
+WHERE contact_email IS NOT NULL;
 
 -- Sessions table
 CREATE TABLE IF NOT EXISTS sessions (

@@ -132,7 +132,7 @@ const internalClientFormSchema = z.object({
   }),
   contactNumber: z.string().optional(),
   fullAddress: z.string().optional(),
-  postcode: z.string().optional(),
+  postcode: z.string().optional(), // Made optional - no longer required
   isMember: z.boolean().optional(),
   isActive: z.boolean().optional(),
   submissionDate: z.string().optional(),
@@ -302,10 +302,10 @@ export default function ClientsPage() {
       const clientDataForFirestore: Omit<Client, 'id' | 'behaviouralBriefId' | 'behaviourQuestionnaireId' | 'createdAt' | 'address' | 'howHeardAboutServices' | 'lastSession' | 'nextSession'> & { dogName?: string; isMember?: boolean; isActive?: boolean; submissionDate?: string; fullAddress?: string } = {
         ownerFirstName: data.ownerFirstName,
         ownerLastName: data.ownerLastName,
-        contactEmail: data.contactEmail || undefined,
-        contactNumber: data.contactNumber ? formatPhoneNumber(data.contactNumber) : undefined,
-        fullAddress: data.fullAddress || undefined,
-        postcode: data.postcode || undefined,
+        contactEmail: data.contactEmail || '', // Provide empty string instead of undefined
+        contactNumber: data.contactNumber ? formatPhoneNumber(data.contactNumber) : '', // Provide empty string instead of undefined
+        fullAddress: data.fullAddress || '',
+        postcode: data.postcode || '', // Postcode no longer required - provide empty string
         dogName: data.dogName || undefined,
         isMember: data.isMember || false,
         isActive: data.isActive === undefined ? true : data.isActive,
