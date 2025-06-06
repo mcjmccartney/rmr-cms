@@ -821,9 +821,9 @@ export default function ClientsPage() {
                                         </TabsTrigger>
                                     </TabsList>
                                     <TabsContent value="sessions" className="pt-4">
-                                        <ul className="space-y-0">
+                                        <ul className="space-y-3">
                                             {clientSessionsForView.length > 0 ? clientSessionsForView.map(session => (
-                                            <li key={session.id} className="bg-card border border-border rounded-md p-3 mb-2">
+                                            <li key={session.id} className="bg-card border border-border rounded-md p-3">
                                                 <div className="text-sm font-medium text-foreground">
                                                   {isValid(parseISO(session.date)) ? format(parseISO(session.date), 'PPP') : session.date} at {session.time}
                                                 </div>

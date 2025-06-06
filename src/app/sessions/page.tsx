@@ -224,6 +224,10 @@ export default function SessionsPage() {
   const [isEditSessionSheetOpen, setIsEditSessionSheetOpen] = useState(false);
   const [sessionToEdit, setSessionToEdit] = useState<Session | null>(null);
 
+  // Track if user has manually edited the price to prevent auto-overwrite
+  const [hasManuallyEditedAddPrice, setHasManuallyEditedAddPrice] = useState(false);
+  const [hasManuallyEditedEditPrice, setHasManuallyEditedEditPrice] = useState(false);
+
 
 
   const addSessionForm = useForm<SessionFormValues>({
@@ -255,6 +259,8 @@ export default function SessionsPage() {
         sessionType: '',
         amount: undefined,
       });
+      // Reset manual edit flag when opening the form
+      setHasManuallyEditedAddPrice(false);
     }
   }, [isAddSessionSheetOpen, resetAddSessionForm]);
 
@@ -262,7 +268,8 @@ export default function SessionsPage() {
   const watchedSessionTypeForAddSession = watchAddSessionForm("sessionType");
 
  useEffect(() => {
-    if (isAddSessionSheetOpen && watchedClientIdForAddSession && watchedSessionTypeForAddSession && clients.length > 0) {
+    // Only auto-set price if user hasn't manually edited it
+    if (isAddSessionSheetOpen && watchedClientIdForAddSession && watchedSessionTypeForAddSession && clients.length > 0 && !hasManuallyEditedAddPrice) {
       const client = clients.find(c => c.id === watchedClientIdForAddSession);
       if (client) {
         let newAmount: number | undefined = undefined;
@@ -276,7 +283,7 @@ export default function SessionsPage() {
         setAddSessionValue("amount", newAmount);
       }
     }
-  }, [isAddSessionSheetOpen, watchedClientIdForAddSession, watchedSessionTypeForAddSession, clients, setAddSessionValue]);
+  }, [isAddSessionSheetOpen, watchedClientIdForAddSession, watchedSessionTypeForAddSession, clients, setAddSessionValue, hasManuallyEditedAddPrice]);
 
   const editSessionForm = useForm<SessionFormValues>({
     resolver: zodResolver(sessionFormSchema),
@@ -307,6 +314,8 @@ export default function SessionsPage() {
         sessionType: sessionToEdit.sessionType || '',
         amount: sessionToEdit.amount,
       });
+      // Reset manual edit flag when opening the edit form
+      setHasManuallyEditedEditPrice(false);
     }
   }, [isEditSessionSheetOpen, sessionToEdit, resetEditSessionForm]);
 
@@ -314,7 +323,8 @@ export default function SessionsPage() {
   const watchedSessionTypeForEditSession = watchEditSessionForm("sessionType");
 
   useEffect(() => {
-    if (isEditSessionSheetOpen && watchedClientIdForEditSession && watchedSessionTypeForEditSession && clients.length > 0) {
+    // Only auto-set price if user hasn't manually edited it
+    if (isEditSessionSheetOpen && watchedClientIdForEditSession && watchedSessionTypeForEditSession && clients.length > 0 && !hasManuallyEditedEditPrice) {
       const client = clients.find(c => c.id === watchedClientIdForEditSession);
       if (client) {
         let newAmount: number | undefined = undefined;
@@ -326,7 +336,7 @@ export default function SessionsPage() {
         setEditSessionValue("amount", newAmount);
       }
     }
-  }, [isEditSessionSheetOpen, watchedClientIdForEditSession, watchedSessionTypeForEditSession, clients, setEditSessionValue]);
+  }, [isEditSessionSheetOpen, watchedClientIdForEditSession, watchedSessionTypeForEditSession, clients, setEditSessionValue, hasManuallyEditedEditPrice]);
 
  useEffect(() => {
     if (isSessionSheetOpen && selectedSessionForSheet && selectedSessionForSheet.clientId) {
@@ -483,6 +493,47 @@ export default function SessionsPage() {
         if (!isValid(dateTimeB)) return -1;
         return dateTimeB.getTime() - dateTimeA.getTime();
         }));
+
+        // Send webhook to Make.com for email automation
+        try {
+          const webhookData = {
+            sessionId: newSession.id,
+            clientId: selectedClient.id,
+            clientName: `${selectedClient.ownerFirstName} ${selectedClient.ownerLastName}`,
+            clientEmail: selectedClient.contactEmail,
+            dogName: selectedClient.dogName,
+            sessionType: data.sessionType,
+            sessionDate: format(data.date, 'yyyy-MM-dd'),
+            sessionTime: data.time,
+            amount: data.amount,
+            isMember: selectedClient.isMember,
+            ownerFirstName: selectedClient.ownerFirstName,
+            ownerLastName: selectedClient.ownerLastName,
+          };
+
+          console.log('🚀 Sending webhook to Make.com:', webhookData);
+
+          const webhookResponse = await fetch('https://hook.eu1.make.com/8c9y8xnjyrgb11bm7vilxh10733dfkgv', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(webhookData),
+          });
+
+          console.log('📡 Webhook response status:', webhookResponse.status);
+
+          if (webhookResponse.ok) {
+            console.log('✅ Webhook sent successfully to Make.com');
+          } else {
+            console.error('❌ Webhook failed with status:', webhookResponse.status);
+            const errorText = await webhookResponse.text();
+            console.error('Webhook error response:', errorText);
+          }
+        } catch (webhookError) {
+          console.error('❌ Webhook error (non-blocking):', webhookError);
+          // Don't show error to user as this is a background process
+        }
       }
 
       toast({
@@ -840,7 +891,11 @@ export default function SessionsPage() {
                             step="0.01"
                             {...field}
                             value={field.value === undefined ? '' : String(field.value)}
-                            onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                            onChange={e => {
+                              field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value));
+                              // Mark as manually edited when user types
+                              setHasManuallyEditedAddPrice(true);
+                            }}
                             className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", addSessionFormErrors.amount && "border-destructive")}
                             disabled={isSubmittingSheet}
                         />
@@ -1397,7 +1452,21 @@ export default function SessionsPage() {
                     <Label htmlFor="edit-amount-sessions">Quote</Label>
                     <Controller name="amount" control={editSessionFormControl}
                     render={({ field }) => (
-                        <Input id="edit-amount-sessions" type="number" placeholder="e.g. 75.50" step="0.01" {...field} value={field.value === undefined ? '' : String(field.value)} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", editSessionFormErrors.amount && "border-destructive")} disabled={isSubmittingSheet} />
+                        <Input
+                            id="edit-amount-sessions"
+                            type="number"
+                            placeholder="e.g. 75.50"
+                            step="0.01"
+                            {...field}
+                            value={field.value === undefined ? '' : String(field.value)}
+                            onChange={e => {
+                              field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value));
+                              // Mark as manually edited when user types
+                              setHasManuallyEditedEditPrice(true);
+                            }}
+                            className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", editSessionFormErrors.amount && "border-destructive")}
+                            disabled={isSubmittingSheet}
+                        />
                     )} />
                     {editSessionFormErrors.amount && <p className="text-xs text-destructive mt-1">{editSessionFormErrors.amount.message}</p>}
                   </div>

@@ -178,6 +178,10 @@ export default function HomePage() {
   const [isEditSessionSheetOpen, setIsEditSessionSheetOpen] = useState(false);
   const [sessionToEdit, setSessionToEdit] = useState<Session | null>(null);
 
+  // Track if user has manually edited the price to prevent auto-overwrite
+  const [hasManuallyEditedAddPrice, setHasManuallyEditedAddPrice] = useState(false);
+  const [hasManuallyEditedEditPrice, setHasManuallyEditedEditPrice] = useState(false);
+
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
 
   const [isSessionSheetOpen, setIsSessionSheetOpen] = useState(false);
@@ -251,6 +255,8 @@ export default function HomePage() {
     if (isAddSessionSheetOpen) {
        setAddSessionValue("date", new Date());
        setAddSessionValue("time", format(new Date(), "HH:mm"));
+       // Reset manual edit flag when opening the form
+       setHasManuallyEditedAddPrice(false);
     }
   }, [isAddSessionSheetOpen, setAddSessionValue]);
 
@@ -258,7 +264,8 @@ export default function HomePage() {
   const watchedSessionTypeForAddSession = watchAddSessionForm("sessionType");
 
   useEffect(() => {
-    if (isAddSessionSheetOpen && watchedClientIdForAddSession && watchedSessionTypeForAddSession && clients.length > 0) {
+    // Only auto-set price if user hasn't manually edited it
+    if (isAddSessionSheetOpen && watchedClientIdForAddSession && watchedSessionTypeForAddSession && clients.length > 0 && !hasManuallyEditedAddPrice) {
       const client = clients.find(c => c.id === watchedClientIdForAddSession);
       if (client) {
         let newAmount: number | undefined = undefined;
@@ -270,7 +277,7 @@ export default function HomePage() {
         setAddSessionValue("amount", newAmount);
       }
     }
-  }, [isAddSessionSheetOpen, watchedClientIdForAddSession, watchedSessionTypeForAddSession, clients, setAddSessionValue]);
+  }, [isAddSessionSheetOpen, watchedClientIdForAddSession, watchedSessionTypeForAddSession, clients, setAddSessionValue, hasManuallyEditedAddPrice]);
 
   const {
     watch: watchEditSessionForm,
@@ -299,6 +306,8 @@ export default function HomePage() {
         sessionType: sessionToEdit.sessionType || '',
         amount: sessionToEdit.amount,
       });
+      // Reset manual edit flag when opening the edit form
+      setHasManuallyEditedEditPrice(false);
     }
   }, [isEditSessionSheetOpen, sessionToEdit, resetEditSessionForm]);
 
@@ -306,7 +315,8 @@ export default function HomePage() {
   const watchedSessionTypeForEditSession = watchEditSessionForm("sessionType");
 
   useEffect(() => {
-    if (isEditSessionSheetOpen && watchedClientIdForEditSession && watchedSessionTypeForEditSession && clients.length > 0) {
+    // Only auto-set price if user hasn't manually edited it
+    if (isEditSessionSheetOpen && watchedClientIdForEditSession && watchedSessionTypeForEditSession && clients.length > 0 && !hasManuallyEditedEditPrice) {
       const client = clients.find(c => c.id === watchedClientIdForEditSession);
       if (client) {
         let newAmount: number | undefined = undefined;
@@ -318,7 +328,7 @@ export default function HomePage() {
         setEditSessionValue("amount", newAmount);
       }
     }
-  }, [isEditSessionSheetOpen, watchedClientIdForEditSession, watchedSessionTypeForEditSession, clients, setEditSessionValue]);
+  }, [isEditSessionSheetOpen, watchedClientIdForEditSession, watchedSessionTypeForEditSession, clients, setEditSessionValue, hasManuallyEditedEditPrice]);
 
   const fetchDashboardData = async () => {
     try {
@@ -538,6 +548,48 @@ export default function HomePage() {
 
       const newSession = await addSession(sessionData);
       setSessions(prev => [newSession, ...prev]);
+
+      // Send webhook to Make.com for email automation
+      try {
+        const webhookData = {
+          sessionId: newSession.id,
+          clientId: selectedClient.id,
+          clientName: `${selectedClient.ownerFirstName} ${selectedClient.ownerLastName}`,
+          clientEmail: selectedClient.contactEmail,
+          dogName: selectedClient.dogName,
+          sessionType: data.sessionType,
+          sessionDate: format(data.date, 'yyyy-MM-dd'),
+          sessionTime: data.time,
+          amount: data.amount,
+          isMember: selectedClient.isMember,
+          ownerFirstName: selectedClient.ownerFirstName,
+          ownerLastName: selectedClient.ownerLastName,
+        };
+
+        console.log('🚀 Dashboard: Sending webhook to Make.com:', webhookData);
+
+        const webhookResponse = await fetch('https://hook.eu1.make.com/8c9y8xnjyrgb11bm7vilxh10733dfkgv', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(webhookData),
+        });
+
+        console.log('📡 Dashboard: Webhook response status:', webhookResponse.status);
+
+        if (webhookResponse.ok) {
+          console.log('✅ Dashboard: Webhook sent successfully to Make.com');
+        } else {
+          console.error('❌ Dashboard: Webhook failed with status:', webhookResponse.status);
+          const errorText = await webhookResponse.text();
+          console.error('Dashboard: Webhook error response:', errorText);
+        }
+      } catch (webhookError) {
+        console.error('❌ Dashboard: Webhook error (non-blocking):', webhookError);
+        // Don't show error to user as this is a background process
+      }
+
       setIsAddSessionSheetOpen(false);
       resetAddSessionForm();
     } catch (err) {
@@ -925,7 +977,21 @@ export default function HomePage() {
                                     <Label htmlFor="amount-dashboard">Quote</Label>
                                     <Controller name="amount" control={addSessionFormControl}
                                     render={({ field }) => (
-                                        <Input id="amount-dashboard" type="number" placeholder="e.g. 75.50" step="0.01" {...field} value={field.value === undefined ? '' : String(field.value)} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", addSessionFormErrors.amount && "border-destructive")} disabled={isSubmittingSheet} />
+                                        <Input
+                                            id="amount-dashboard"
+                                            type="number"
+                                            placeholder="e.g. 75.50"
+                                            step="0.01"
+                                            {...field}
+                                            value={field.value === undefined ? '' : String(field.value)}
+                                            onChange={e => {
+                                              field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value));
+                                              // Mark as manually edited when user types
+                                              setHasManuallyEditedAddPrice(true);
+                                            }}
+                                            className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", addSessionFormErrors.amount && "border-destructive")}
+                                            disabled={isSubmittingSheet}
+                                        />
                                     )} />
                                     {addSessionFormErrors.amount && <p className="text-xs text-destructive mt-1">{addSessionFormErrors.amount.message}</p>}
                                 </div>
@@ -1219,7 +1285,21 @@ export default function HomePage() {
                       <Label htmlFor="edit-amount-dashboard">Quote</Label>
                       <Controller name="amount" control={editSessionFormControl}
                       render={({ field }) => (
-                          <Input id="edit-amount-dashboard" type="number" placeholder="e.g. 75.50" step="0.01" {...field} value={field.value === undefined ? '' : String(field.value)} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", editSessionFormErrors.amount && "border-destructive")} disabled={isSubmittingSheet} />
+                          <Input
+                              id="edit-amount-dashboard"
+                              type="number"
+                              placeholder="e.g. 75.50"
+                              step="0.01"
+                              {...field}
+                              value={field.value === undefined ? '' : String(field.value)}
+                              onChange={e => {
+                                field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value));
+                                // Mark as manually edited when user types
+                                setHasManuallyEditedEditPrice(true);
+                              }}
+                              className={cn("w-full focus-visible:ring-0 focus-visible:ring-offset-0", editSessionFormErrors.amount && "border-destructive")}
+                              disabled={isSubmittingSheet}
+                          />
                       )} />
                       {editSessionFormErrors.amount && <p className="text-xs text-destructive mt-1">{editSessionFormErrors.amount.message}</p>}
                   </div>
