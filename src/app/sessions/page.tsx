@@ -596,7 +596,7 @@ export default function SessionsPage() {
 
           console.log('🚀 Sending webhook to Make.com:', webhookData);
 
-          const webhookResponse = await fetch('https://hook.eu1.make.com/8c9y8xnjyrgb11bm7vilxh10733dfkgv', {
+          const webhookResponse = await fetch('https://hook.eu1.make.com/lipggo8kcd8kwq2vp6j6mr3gnxbx12h7', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
