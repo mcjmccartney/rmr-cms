@@ -240,7 +240,7 @@ export async function GET() {
       step1: 'Create new Make.com scenario',
       step2: 'Add Squarespace "Watch Orders" trigger',
       step3: 'Add filter: Product name contains "membership"',
-      step4: 'Add HTTP module pointing to this endpoint',
+      step4: 'Add HTTP module with URL: https://rmr-cms.vercel.app/api/squarespace/webhook',
       step5: 'Map Squarespace fields to expected data structure'
     }
   });

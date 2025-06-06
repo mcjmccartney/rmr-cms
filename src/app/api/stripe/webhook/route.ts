@@ -226,7 +226,7 @@ export async function GET() {
     },
     makeComSetup: {
       step1: 'Stripe "Watch Events" trigger is already set up ✅',
-      step2: 'Add HTTP module pointing to this endpoint',
+      step2: 'Add HTTP module with URL: https://rmr-cms.vercel.app/api/stripe/webhook',
       step3: 'Map Stripe fields to expected data structure',
       step4: 'Test with a sample payment'
     }
