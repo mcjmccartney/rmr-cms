@@ -37,7 +37,12 @@ CREATE TABLE IF NOT EXISTS sessions (
   time TEXT NOT NULL,
   session_type TEXT NOT NULL,
   amount DECIMAL(10,2),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  deposit_paid BOOLEAN DEFAULT false,
+  payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')),
+  payment_date DATE,
+  payment_intent_id TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Behavioural briefs table
@@ -136,6 +141,9 @@ CREATE TABLE IF NOT EXISTS memberships (
 CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(contact_email);
 CREATE INDEX IF NOT EXISTS idx_sessions_client_id ON sessions(client_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date);
+CREATE INDEX IF NOT EXISTS idx_sessions_email ON sessions(email);
+CREATE INDEX IF NOT EXISTS idx_sessions_deposit_paid ON sessions(deposit_paid);
+CREATE INDEX IF NOT EXISTS idx_sessions_payment_status ON sessions(payment_status);
 CREATE INDEX IF NOT EXISTS idx_behavioural_briefs_client_id ON behavioural_briefs(client_id);
 CREATE INDEX IF NOT EXISTS idx_behaviour_questionnaires_client_id ON behaviour_questionnaires(client_id);
 CREATE INDEX IF NOT EXISTS idx_expected_revenue_targets_year_month ON expected_revenue_targets(year, month);

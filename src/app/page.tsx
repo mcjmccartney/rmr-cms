@@ -540,6 +540,7 @@ export default function HomePage() {
         clientId: data.clientId,
         clientName: `${selectedClient.ownerFirstName} ${selectedClient.ownerLastName}`,
         dogName: selectedClient.dogName,
+        email: selectedClient.contactEmail, // Add client email for payment matching
         date: format(data.date, 'yyyy-MM-dd'),
         time: data.time,
         sessionType: data.sessionType,

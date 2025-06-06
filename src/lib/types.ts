@@ -136,7 +136,12 @@ export interface Session {
   time: string; // Should be in 'HH:MM' (24-hour) format (extracted from booking)
   sessionType: string;
   amount?: number;
+  depositPaid?: boolean; // Payment tracking
+  paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded'; // Payment status
+  paymentDate?: string; // Date payment was completed
+  paymentIntentId?: string; // Stripe payment intent ID
   createdAt?: Date | string; // ISO string/Date for client-side
+  updatedAt?: Date | string; // Last updated timestamp
 }
 
 export interface FinancialTransaction {

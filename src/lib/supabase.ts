@@ -168,33 +168,51 @@ export interface Database {
           client_id: string
           client_name: string
           dog_name?: string
+          email?: string
           date: string
           time: string
           session_type: string
           amount?: number
+          deposit_paid?: boolean
+          payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'
+          payment_date?: string
+          payment_intent_id?: string
           created_at: string
+          updated_at?: string
         }
         Insert: {
           id?: string
           client_id: string
           client_name: string
           dog_name?: string
+          email?: string
           date: string
           time: string
           session_type: string
           amount?: number
+          deposit_paid?: boolean
+          payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'
+          payment_date?: string
+          payment_intent_id?: string
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
           client_id?: string
           client_name?: string
           dog_name?: string
+          email?: string
           date?: string
           time?: string
           session_type?: string
           amount?: number
+          deposit_paid?: boolean
+          payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'
+          payment_date?: string
+          payment_intent_id?: string
           created_at?: string
+          updated_at?: string
         }
       }
       expected_revenue_targets: {

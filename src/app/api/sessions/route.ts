@@ -77,10 +77,14 @@ async function addSession(session: any) {
       client_id: session.clientId,
       client_name: session.clientName,
       dog_name: session.dogName,
-      email: session.email,
+      email: session.email || session.clientEmail, // Support both field names
       booking: bookingTimestamp,
       session_type: session.sessionType,
       amount: session.amount,
+      deposit_paid: session.depositPaid || false,
+      payment_status: session.paymentStatus || 'pending',
+      payment_date: session.paymentDate || null,
+      payment_intent_id: session.paymentIntentId || null,
     };
 
     const { data: rawData, error } = await supabase
@@ -105,7 +109,12 @@ async function addSession(session: any) {
       time: rawData.booking ? rawData.booking.split('T')[1]?.split('.')[0]?.substring(0, 5) : null,
       sessionType: rawData.session_type,
       amount: rawData.amount,
+      depositPaid: rawData.deposit_paid,
+      paymentStatus: rawData.payment_status,
+      paymentDate: rawData.payment_date,
+      paymentIntentId: rawData.payment_intent_id,
       createdAt: rawData.created_at,
+      updatedAt: rawData.updated_at,
     };
 
     console.log('✅ Server: Session added successfully');
@@ -135,6 +144,10 @@ async function updateSession(id: string, updates: any) {
 
     if (updates.sessionType !== undefined) dbUpdates.session_type = updates.sessionType;
     if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
+    if (updates.depositPaid !== undefined) dbUpdates.deposit_paid = updates.depositPaid;
+    if (updates.paymentStatus !== undefined) dbUpdates.payment_status = updates.paymentStatus;
+    if (updates.paymentDate !== undefined) dbUpdates.payment_date = updates.paymentDate;
+    if (updates.paymentIntentId !== undefined) dbUpdates.payment_intent_id = updates.paymentIntentId;
 
     const { error } = await supabase
       .from('sessions')

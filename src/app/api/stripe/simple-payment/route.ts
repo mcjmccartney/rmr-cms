@@ -21,7 +21,7 @@ async function markSessionAsPaidByEmail(customerEmail: string, sessionId?: strin
   let query = supabase
     .from('sessions')
     .select('*')
-    .eq('client_email', customerEmail)
+    .eq('email', customerEmail) // Use 'email' field from sessions table
     .eq('deposit_paid', false)
     .order('created_at', { ascending: false }); // Get most recent first
 
