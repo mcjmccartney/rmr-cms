@@ -13,15 +13,50 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
+// Function to extract sessionId from Stripe event
+function extractSessionIdFromStripeEvent(event: any): string | null {
+  try {
+    // Method 1: Check metadata (if sessionId was added when creating checkout session)
+    if (event.data?.object?.metadata?.sessionId) {
+      console.log('✅ Found sessionId in metadata:', event.data.object.metadata.sessionId);
+      return event.data.object.metadata.sessionId;
+    }
+
+    // Method 2: Check success_url for sessionId parameter
+    if (event.data?.object?.success_url) {
+      const url = new URL(event.data.object.success_url);
+      const sessionIdFromUrl = url.searchParams.get('sessionId');
+      if (sessionIdFromUrl) {
+        console.log('✅ Found sessionId in success_url:', sessionIdFromUrl);
+        return sessionIdFromUrl;
+      }
+    }
+
+    // Method 3: Check client_reference_id (alternative approach)
+    if (event.data?.object?.client_reference_id) {
+      console.log('✅ Found sessionId in client_reference_id:', event.data.object.client_reference_id);
+      return event.data.object.client_reference_id;
+    }
+
+    console.log('❌ No sessionId found in Stripe event');
+    return null;
+  } catch (error) {
+    console.error('❌ Error extracting sessionId from Stripe event:', error);
+    return null;
+  }
+}
+
 // Types for Stripe session payment data
 interface StripeSessionPaymentData {
-  sessionId: string;
+  sessionId?: string;
   paymentIntentId?: string;
   amount?: number;
   currency?: string;
   customerEmail?: string;
   paymentStatus: 'succeeded' | 'failed' | 'pending';
   paymentDate?: string;
+  // For direct Stripe webhook events
+  stripeEvent?: any;
 }
 
 // Function to update session payment status
@@ -96,12 +131,48 @@ async function updateSessionPaymentStatus(sessionId: string, paymentData: Stripe
 export async function POST(request: NextRequest) {
   try {
     console.log('💳 Stripe session payment webhook received');
-    
-    const paymentData: StripeSessionPaymentData = await request.json();
-    console.log('📨 Payment data:', JSON.stringify(paymentData, null, 2));
+
+    const requestData = await request.json();
+    console.log('📨 Raw request data:', JSON.stringify(requestData, null, 2));
+
+    let sessionId: string | null = null;
+    let paymentData: StripeSessionPaymentData;
+
+    // Check if this is a direct Stripe webhook event
+    if (requestData.type && requestData.data) {
+      console.log('🔍 Processing direct Stripe webhook event:', requestData.type);
+
+      // Extract sessionId from Stripe event
+      sessionId = extractSessionIdFromStripeEvent(requestData);
+
+      if (!sessionId) {
+        console.error('❌ Could not extract sessionId from Stripe event');
+        return NextResponse.json(
+          { error: 'Could not extract sessionId from Stripe event. Ensure sessionId is in metadata, success_url, or client_reference_id.' },
+          { status: 400 }
+        );
+      }
+
+      // Create payment data from Stripe event
+      const stripeObject = requestData.data.object;
+      paymentData = {
+        sessionId,
+        paymentStatus: requestData.type === 'checkout.session.completed' ? 'succeeded' :
+                      requestData.type === 'payment_intent.succeeded' ? 'succeeded' : 'pending',
+        paymentIntentId: stripeObject.payment_intent || stripeObject.id,
+        amount: stripeObject.amount_total ? stripeObject.amount_total / 100 : stripeObject.amount ? stripeObject.amount / 100 : undefined,
+        currency: stripeObject.currency,
+        customerEmail: stripeObject.customer_details?.email || stripeObject.customer_email,
+        paymentDate: new Date().toISOString().split('T')[0]
+      };
+    } else {
+      // Handle direct API call (existing format)
+      paymentData = requestData as StripeSessionPaymentData;
+      sessionId = paymentData.sessionId || null;
+    }
 
     // Validate required fields
-    if (!paymentData.sessionId || !paymentData.paymentStatus) {
+    if (!sessionId || !paymentData.paymentStatus) {
       console.error('❌ Missing required fields');
       return NextResponse.json(
         { error: 'Missing required fields: sessionId and paymentStatus' },
@@ -109,16 +180,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Ensure sessionId is set in paymentData
+    paymentData.sessionId = sessionId;
+
     // Update the session payment status
     console.log('🔄 Processing session payment update...');
-    
-    const updatedSession = await updateSessionPaymentStatus(paymentData.sessionId, paymentData);
+
+    const updatedSession = await updateSessionPaymentStatus(sessionId, paymentData);
 
     console.log('✅ Session payment update processed successfully');
-    
+
     return NextResponse.json({
       success: true,
-      message: `Session ${paymentData.sessionId} payment status updated to ${paymentData.paymentStatus}`,
+      message: `Session ${sessionId} payment status updated to ${paymentData.paymentStatus}`,
       sessionId: updatedSession.id,
       paymentStatus: paymentData.paymentStatus,
       depositPaid: updatedSession.deposit_paid,
