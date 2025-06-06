@@ -16,27 +16,58 @@ function getSupabaseClient() {
 // Function to extract sessionId from Stripe event
 function extractSessionIdFromStripeEvent(event: any): string | null {
   try {
+    console.log('🔍 Analyzing Stripe event for sessionId extraction...');
+    console.log('📊 Event type:', event.type);
+    console.log('📊 Event object keys:', Object.keys(event.data?.object || {}));
+
+    const stripeObject = event.data?.object;
+
     // Method 1: Check metadata (if sessionId was added when creating checkout session)
-    if (event.data?.object?.metadata?.sessionId) {
-      console.log('✅ Found sessionId in metadata:', event.data.object.metadata.sessionId);
-      return event.data.object.metadata.sessionId;
+    if (stripeObject?.metadata?.sessionId) {
+      console.log('✅ Found sessionId in metadata:', stripeObject.metadata.sessionId);
+      return stripeObject.metadata.sessionId;
     }
 
     // Method 2: Check success_url for sessionId parameter
-    if (event.data?.object?.success_url) {
-      const url = new URL(event.data.object.success_url);
-      const sessionIdFromUrl = url.searchParams.get('sessionId');
-      if (sessionIdFromUrl) {
-        console.log('✅ Found sessionId in success_url:', sessionIdFromUrl);
-        return sessionIdFromUrl;
+    if (stripeObject?.success_url) {
+      console.log('🔍 Checking success_url:', stripeObject.success_url);
+      try {
+        const url = new URL(stripeObject.success_url);
+        const sessionIdFromUrl = url.searchParams.get('sessionId');
+        if (sessionIdFromUrl) {
+          console.log('✅ Found sessionId in success_url:', sessionIdFromUrl);
+          return sessionIdFromUrl;
+        }
+      } catch (urlError) {
+        console.log('⚠️ Could not parse success_url as URL:', urlError);
       }
     }
 
     // Method 3: Check client_reference_id (alternative approach)
-    if (event.data?.object?.client_reference_id) {
-      console.log('✅ Found sessionId in client_reference_id:', event.data.object.client_reference_id);
-      return event.data.object.client_reference_id;
+    if (stripeObject?.client_reference_id) {
+      console.log('✅ Found sessionId in client_reference_id:', stripeObject.client_reference_id);
+      return stripeObject.client_reference_id;
     }
+
+    // Method 4: Check custom fields or other possible locations
+    if (stripeObject?.custom_fields) {
+      console.log('🔍 Checking custom_fields:', stripeObject.custom_fields);
+      // Look for sessionId in custom fields
+      for (const field of stripeObject.custom_fields) {
+        if (field.key === 'sessionId' || field.key === 'session_id') {
+          console.log('✅ Found sessionId in custom_fields:', field.value);
+          return field.value;
+        }
+      }
+    }
+
+    // Method 5: Log available data for debugging
+    console.log('🔍 Available Stripe object data:');
+    console.log('- metadata:', stripeObject?.metadata);
+    console.log('- success_url:', stripeObject?.success_url);
+    console.log('- client_reference_id:', stripeObject?.client_reference_id);
+    console.log('- custom_fields:', stripeObject?.custom_fields);
+    console.log('- url:', stripeObject?.url);
 
     console.log('❌ No sessionId found in Stripe event');
     return null;
@@ -141,14 +172,32 @@ export async function POST(request: NextRequest) {
     // Check if this is a direct Stripe webhook event
     if (requestData.type && requestData.data) {
       console.log('🔍 Processing direct Stripe webhook event:', requestData.type);
+      console.log('📊 Full Stripe event data:', JSON.stringify(requestData, null, 2));
 
       // Extract sessionId from Stripe event
       sessionId = extractSessionIdFromStripeEvent(requestData);
 
       if (!sessionId) {
         console.error('❌ Could not extract sessionId from Stripe event');
+        console.error('📊 Available event data:', {
+          type: requestData.type,
+          objectKeys: Object.keys(requestData.data?.object || {}),
+          metadata: requestData.data?.object?.metadata,
+          success_url: requestData.data?.object?.success_url,
+          client_reference_id: requestData.data?.object?.client_reference_id
+        });
+
         return NextResponse.json(
-          { error: 'Could not extract sessionId from Stripe event. Ensure sessionId is in metadata, success_url, or client_reference_id.' },
+          {
+            error: 'Could not extract sessionId from Stripe event. Ensure sessionId is in metadata, success_url, or client_reference_id.',
+            debug: {
+              eventType: requestData.type,
+              availableFields: Object.keys(requestData.data?.object || {}),
+              metadata: requestData.data?.object?.metadata,
+              success_url: requestData.data?.object?.success_url,
+              client_reference_id: requestData.data?.object?.client_reference_id
+            }
+          },
           { status: 400 }
         );
       }
