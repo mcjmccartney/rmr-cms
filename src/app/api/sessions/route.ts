@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 async function getSessions() {
   console.log('🔍 Server: Fetching sessions from Supabase...');
   try {
-    // First try to get sessions with join to clients
+    // First try to get sessions with join to clients (including email for payment matching)
     let { data: rawData, error } = await supabase
       .from('sessions')
       .select(`
@@ -12,7 +12,10 @@ async function getSessions() {
         clients!sessions_client_id_fkey(
           owner_first_name,
           owner_last_name,
-          dog_name
+          dog_name,
+          contact_email,
+          contact_number,
+          is_member
         )
       `)
       .order('booking', { ascending: false });
@@ -46,13 +49,22 @@ async function getSessions() {
       clientId: session.client_id,
       clientName: session.clients ? `${session.clients.owner_first_name} ${session.clients.owner_last_name}` : session.client_name || 'Unknown Client',
       dogName: session.clients?.dog_name || session.dog_name || null,
-      email: session.email,
+      email: session.clients?.contact_email || session.email, // Use client's email from JOIN
       booking: session.booking,
       date: session.booking ? session.booking.split('T')[0] : null, // Extract date from booking timestamp
       time: session.booking ? session.booking.split('T')[1]?.split('.')[0]?.substring(0, 5) : null, // Extract time from booking timestamp
       sessionType: session.session_type || 'General Session',
       amount: session.amount,
+      depositPaid: session.deposit_paid,
+      paymentStatus: session.payment_status,
+      paymentDate: session.payment_date,
+      paymentIntentId: session.payment_intent_id,
       createdAt: session.created_at,
+      updatedAt: session.updated_at,
+      // Additional client data for debugging
+      clientEmail: session.clients?.contact_email,
+      clientPhone: session.clients?.contact_number,
+      isMember: session.clients?.is_member,
     }));
 
     console.log(`✅ Server: Found ${data.length} sessions`);
