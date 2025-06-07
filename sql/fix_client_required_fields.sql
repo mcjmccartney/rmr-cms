@@ -27,13 +27,24 @@ ALTER COLUMN contact_email DROP NOT NULL;
 
 -- Update the unique constraint to handle NULLs properly
 -- Drop existing unique constraint
-ALTER TABLE clients 
+ALTER TABLE clients
 DROP CONSTRAINT IF EXISTS clients_contact_email_key;
 
--- Add new unique constraint that allows multiple NULLs
-CREATE UNIQUE INDEX clients_contact_email_unique 
-ON clients (contact_email) 
-WHERE contact_email IS NOT NULL;
+-- Add new unique constraint that allows multiple NULLs (only if it doesn't exist)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes
+    WHERE indexname = 'clients_contact_email_unique'
+  ) THEN
+    CREATE UNIQUE INDEX clients_contact_email_unique
+    ON clients (contact_email)
+    WHERE contact_email IS NOT NULL;
+    RAISE NOTICE 'Created unique index clients_contact_email_unique';
+  ELSE
+    RAISE NOTICE 'Index clients_contact_email_unique already exists';
+  END IF;
+END $$;
 
 -- Verify the changes
 SELECT 
