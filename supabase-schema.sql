@@ -31,15 +31,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS clients_contact_email_unique
 ON clients (contact_email)
 WHERE contact_email IS NOT NULL;
 
--- Sessions table
+-- Sessions table (restructured - removed denormalized fields)
 CREATE TABLE IF NOT EXISTS sessions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
-  client_name TEXT NOT NULL,
-  dog_name TEXT,
-  email TEXT,
-  date TEXT NOT NULL,
-  time TEXT NOT NULL,
+  booking TIMESTAMP WITH TIME ZONE, -- Combined date/time field
   session_type TEXT NOT NULL,
   amount DECIMAL(10,2),
   deposit_paid BOOLEAN DEFAULT false,
@@ -49,6 +45,9 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Note: client_name, dog_name, email are accessed via JOIN with clients table
+-- This maintains data normalization and referential integrity
 
 -- Behavioural briefs table
 CREATE TABLE IF NOT EXISTS behavioural_briefs (

@@ -87,11 +87,9 @@ async function addSession(session: any) {
 
     const dbSession = {
       client_id: session.clientId,
-      client_name: session.clientName,
-      dog_name: session.dogName,
-      // No email field needed - we'll use JOIN with clients table for payment matching
+      // Removed denormalized fields - use JOIN with clients table instead
       booking: bookingTimestamp,
-      session_type: session.sessionType,
+      session_type: session.sessionType || 'General Session',
       amount: session.amount,
       deposit_paid: session.depositPaid || false,
       payment_status: session.paymentStatus || 'pending',
@@ -110,12 +108,12 @@ async function addSession(session: any) {
     }
 
     // Transform the response back to frontend format
+    // Note: clientName, dogName, email will be populated via JOIN in getSessions()
     const data = {
       id: rawData.id,
       clientId: rawData.client_id,
-      clientName: rawData.client_name,
-      dogName: rawData.dog_name,
-      // No email field - use JOIN with clients table when needed
+      clientName: 'Unknown Client', // Will be populated via JOIN
+      dogName: null, // Will be populated via JOIN
       booking: rawData.booking,
       date: rawData.booking ? rawData.booking.split('T')[0] : null,
       time: rawData.booking ? rawData.booking.split('T')[1]?.split('.')[0]?.substring(0, 5) : null,
@@ -143,9 +141,7 @@ async function updateSession(id: string, updates: any) {
     // Transform the updates to match database schema
     const dbUpdates: any = {};
     if (updates.clientId !== undefined) dbUpdates.client_id = updates.clientId;
-    if (updates.clientName !== undefined) dbUpdates.client_name = updates.clientName;
-    if (updates.dogName !== undefined) dbUpdates.dog_name = updates.dogName;
-    if (updates.email !== undefined) dbUpdates.email = updates.email;
+    // Removed denormalized fields - clientName, dogName, email are now via JOIN
 
     // Handle booking timestamp - combine date and time if provided separately
     if (updates.date !== undefined && updates.time !== undefined) {

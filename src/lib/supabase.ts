@@ -166,11 +166,7 @@ export interface Database {
         Row: {
           id: string
           client_id: string
-          client_name: string
-          dog_name?: string
-          email?: string
-          date: string
-          time: string
+          booking?: string
           session_type: string
           amount?: number
           deposit_paid?: boolean
@@ -183,11 +179,7 @@ export interface Database {
         Insert: {
           id?: string
           client_id: string
-          client_name: string
-          dog_name?: string
-          email?: string
-          date: string
-          time: string
+          booking?: string
           session_type: string
           amount?: number
           deposit_paid?: boolean
@@ -200,11 +192,7 @@ export interface Database {
         Update: {
           id?: string
           client_id?: string
-          client_name?: string
-          dog_name?: string
-          email?: string
-          date?: string
-          time?: string
+          booking?: string
           session_type?: string
           amount?: number
           deposit_paid?: boolean

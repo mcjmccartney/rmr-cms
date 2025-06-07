@@ -178,9 +178,9 @@ const updateClient = async (id: string, updateData: any) => {
 
 const sessionFormSchema = z.object({
   clientId: z.string().min(1, { message: "Client selection is required." }),
-  date: z.date({ required_error: "Booking Date is required." }),
-  time: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: "Invalid time format. Use HH:MM." }),
-  sessionType: z.string().min(1, { message: 'Session type is required.' }),
+  date: z.date().optional(),
+  time: z.string().optional(),
+  sessionType: z.string().optional(),
   amount: z.preprocess(
     (val) => (String(val).trim() === '' ? undefined : parseFloat(String(val))),
     z.number().nonnegative({ message: 'Quote must be a positive number.' }).optional()
@@ -189,17 +189,17 @@ const sessionFormSchema = z.object({
 
 type SessionFormValues = z.infer<typeof sessionFormSchema>;
 
-// Client form schema for editing
+// Client form schema for editing - all fields optional except essential identifiers
 const clientFormSchema = z.object({
   ownerFirstName: z.string().min(1, { message: "First name is required." }),
   ownerLastName: z.string().min(1, { message: "Last name is required." }),
   dogName: z.string().optional(),
-  contactEmail: z.string().email({ message: "Invalid email address." }).optional().or(z.literal('')),
+  contactEmail: z.string().optional(),
   contactNumber: z.string().optional(),
   fullAddress: z.string().optional(),
   postcode: z.string().optional(),
-  isMember: z.boolean().default(false),
-  isActive: z.boolean().default(true),
+  isMember: z.boolean().optional(),
+  isActive: z.boolean().optional(),
 });
 
 type ClientFormValues = z.infer<typeof clientFormSchema>;
@@ -548,12 +548,10 @@ export default function SessionsPage() {
 
     const sessionData: Omit<Session, 'id' | 'createdAt'> = {
       clientId: data.clientId,
-      clientName: `${selectedClient.ownerFirstName} ${selectedClient.ownerLastName}`,
-      dogName: selectedClient.dogName || undefined,
-      // No need to store email - we'll use JOIN with clients table for payment matching
-      date: format(data.date, 'yyyy-MM-dd'),
-      time: data.time,
-      sessionType: data.sessionType,
+      // Removed denormalized fields - will be populated via JOIN
+      date: data.date ? format(data.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      time: data.time || '09:00',
+      sessionType: data.sessionType || 'General Session',
       amount: data.amount,
     };
 

@@ -47,22 +47,54 @@ WHERE table_name = 'clients'
   AND table_schema = 'public'
 ORDER BY ordinal_position;
 
--- Test inserting a client with minimal data
-INSERT INTO clients (
-  owner_first_name,
-  owner_last_name,
-  submission_date
-) VALUES (
-  'Test',
-  'Client',
-  '2025-01-15'
-) RETURNING id, owner_first_name, owner_last_name, contact_email, contact_number, postcode;
+-- Test inserting a client with minimal data (using dynamic approach)
+DO $$
+DECLARE
+    has_submission_date BOOLEAN;
+    test_client_id UUID;
+BEGIN
+    -- Check if submission_date column exists
+    SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'clients'
+        AND column_name = 'submission_date'
+        AND table_schema = 'public'
+    ) INTO has_submission_date;
 
--- Clean up test record
-DELETE FROM clients 
-WHERE owner_first_name = 'Test' 
-  AND owner_last_name = 'Client' 
-  AND submission_date = '2025-01-15';
+    IF has_submission_date THEN
+        -- Insert with submission_date
+        INSERT INTO clients (
+            owner_first_name,
+            owner_last_name,
+            submission_date
+        ) VALUES (
+            'Test',
+            'Client',
+            '2025-01-15'
+        ) RETURNING id INTO test_client_id;
+
+        RAISE NOTICE 'Test client created with submission_date: %', test_client_id;
+
+        -- Clean up
+        DELETE FROM clients WHERE id = test_client_id;
+        RAISE NOTICE 'Test client deleted: %', test_client_id;
+    ELSE
+        -- Insert without submission_date
+        INSERT INTO clients (
+            owner_first_name,
+            owner_last_name
+        ) VALUES (
+            'Test',
+            'Client'
+        ) RETURNING id INTO test_client_id;
+
+        RAISE NOTICE 'Test client created without submission_date: %', test_client_id;
+
+        -- Clean up
+        DELETE FROM clients WHERE id = test_client_id;
+        RAISE NOTICE 'Test client deleted: %', test_client_id;
+    END IF;
+END $$;
 
 -- Show summary
 SELECT 

@@ -127,12 +127,10 @@ const internalClientFormSchema = z.object({
   ownerFirstName: z.string().min(1, { message: "First name is required." }),
   ownerLastName: z.string().min(1, { message: "Last name is required." }),
   dogName: z.string().optional(),
-  contactEmail: z.string().optional().refine((val) => !val || z.string().email().safeParse(val).success, {
-    message: "Invalid email address."
-  }),
+  contactEmail: z.string().optional(),
   contactNumber: z.string().optional(),
   fullAddress: z.string().optional(),
-  postcode: z.string().optional(), // Made optional - no longer required
+  postcode: z.string().optional(),
   isMember: z.boolean().optional(),
   isActive: z.boolean().optional(),
   submissionDate: z.string().optional(),
