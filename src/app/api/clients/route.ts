@@ -37,27 +37,27 @@ class ServerSupabaseClient {
       const rawData = await response.json();
 
       // Transform the data to match the expected frontend format
-      // Only include fields that definitely exist in the database
+      // Handle missing fields gracefully
       const data = rawData.map((client: any) => ({
         id: client.id,
-        ownerFirstName: client.owner_first_name,
-        ownerLastName: client.owner_last_name,
-        contactEmail: client.contact_email,
-        contactNumber: client.contact_number,
-        postcode: client.postcode,
-        fullAddress: client.full_address,
-        dogName: client.dog_name,
-        isMember: client.is_member,
-        isActive: client.is_active,
-        submissionDate: client.submission_date,
-        lastSession: client.last_session,
-        nextSession: client.next_session,
-        // Set default values for fields that may not exist in database
-        behaviouralBriefId: null,
-        behaviourQuestionnaireId: null,
-        address: null,
-        howHeardAboutServices: null,
-        createdAt: client.created_at,
+        ownerFirstName: client.owner_first_name || '',
+        ownerLastName: client.owner_last_name || '',
+        contactEmail: client.contact_email || '',
+        contactNumber: client.contact_number || '',
+        postcode: client.postcode || '',
+        fullAddress: client.full_address || '',
+        dogName: client.dog_name || '',
+        isMember: client.is_member || false,
+        isActive: client.is_active !== undefined ? client.is_active : true,
+        submissionDate: client.submission_date || '',
+        // Set safe defaults for fields that may not exist
+        lastSession: client.last_session || 'N/A',
+        nextSession: client.next_session || 'Not Scheduled',
+        behaviouralBriefId: client.behavioural_brief_id || null,
+        behaviourQuestionnaireId: client.behaviour_questionnaire_id || null,
+        address: client.address || null,
+        howHeardAboutServices: client.how_heard_about_services || null,
+        createdAt: client.created_at || new Date().toISOString(),
       }));
 
       console.log(`✅ Server: Found ${data.length} clients`);
@@ -81,26 +81,39 @@ class ServerSupabaseClient {
         return value;
       };
 
-      // Only include fields that definitely exist in the database
-      const dbClient = {
+      // Start with absolutely minimal fields and add only what exists
+      const dbClient: any = {
         owner_first_name: client.ownerFirstName,
         owner_last_name: client.ownerLastName,
-        contact_email: toNullIfEmpty(client.contactEmail),
-        contact_number: toNullIfEmpty(client.contactNumber),
-        postcode: toNullIfEmpty(client.postcode),
-        full_address: toNullIfEmpty(client.fullAddress),
-        dog_name: toNullIfEmpty(client.dogName),
-        is_member: client.isMember || false,
-        is_active: client.isActive !== undefined ? client.isActive : true,
-        submission_date: client.submissionDate || new Date().toISOString().split('T')[0],
-        last_session: client.lastSession || 'N/A',
-        next_session: client.nextSession || 'Not Scheduled',
-        // Removed optional fields that may not exist in actual database:
-        // - behavioural_brief_id
-        // - behaviour_questionnaire_id
-        // - address
-        // - how_heard_about_services
       };
+
+      // Add optional fields only if they have values
+      if (client.contactEmail && client.contactEmail.trim()) {
+        dbClient.contact_email = client.contactEmail.trim();
+      }
+      if (client.contactNumber && client.contactNumber.trim()) {
+        dbClient.contact_number = client.contactNumber.trim();
+      }
+      if (client.postcode && client.postcode.trim()) {
+        dbClient.postcode = client.postcode.trim();
+      }
+      if (client.fullAddress && client.fullAddress.trim()) {
+        dbClient.full_address = client.fullAddress.trim();
+      }
+      if (client.dogName && client.dogName.trim()) {
+        dbClient.dog_name = client.dogName.trim();
+      }
+      if (client.isMember !== undefined) {
+        dbClient.is_member = client.isMember;
+      }
+      if (client.isActive !== undefined) {
+        dbClient.is_active = client.isActive;
+      }
+
+      // Only add submission_date if we have it
+      if (client.submissionDate) {
+        dbClient.submission_date = client.submissionDate;
+      }
 
       console.log('📤 Server: Sending to Supabase:', JSON.stringify(dbClient, null, 2));
 
@@ -122,27 +135,27 @@ class ServerSupabaseClient {
       const rawData = await response.json();
 
       // Transform the response back to frontend format
-      // Only include fields that definitely exist in the database
+      // Handle missing fields gracefully
       const data = rawData.map((client: any) => ({
         id: client.id,
-        ownerFirstName: client.owner_first_name,
-        ownerLastName: client.owner_last_name,
-        contactEmail: client.contact_email,
-        contactNumber: client.contact_number,
-        postcode: client.postcode,
-        fullAddress: client.full_address,
-        dogName: client.dog_name,
-        isMember: client.is_member,
-        isActive: client.is_active,
-        submissionDate: client.submission_date,
-        lastSession: client.last_session,
-        nextSession: client.next_session,
-        // Set default values for fields that may not exist in database
-        behaviouralBriefId: null,
-        behaviourQuestionnaireId: null,
-        address: null,
-        howHeardAboutServices: null,
-        createdAt: client.created_at,
+        ownerFirstName: client.owner_first_name || '',
+        ownerLastName: client.owner_last_name || '',
+        contactEmail: client.contact_email || '',
+        contactNumber: client.contact_number || '',
+        postcode: client.postcode || '',
+        fullAddress: client.full_address || '',
+        dogName: client.dog_name || '',
+        isMember: client.is_member || false,
+        isActive: client.is_active !== undefined ? client.is_active : true,
+        submissionDate: client.submission_date || '',
+        // Set safe defaults for fields that may not exist
+        lastSession: client.last_session || 'N/A',
+        nextSession: client.next_session || 'Not Scheduled',
+        behaviouralBriefId: client.behavioural_brief_id || null,
+        behaviourQuestionnaireId: client.behaviour_questionnaire_id || null,
+        address: client.address || null,
+        howHeardAboutServices: client.how_heard_about_services || null,
+        createdAt: client.created_at || new Date().toISOString(),
       }));
 
       console.log('✅ Server: Client added successfully');
