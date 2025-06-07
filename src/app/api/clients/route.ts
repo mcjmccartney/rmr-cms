@@ -37,6 +37,7 @@ class ServerSupabaseClient {
       const rawData = await response.json();
 
       // Transform the data to match the expected frontend format
+      // Only include fields that definitely exist in the database
       const data = rawData.map((client: any) => ({
         id: client.id,
         ownerFirstName: client.owner_first_name,
@@ -51,10 +52,11 @@ class ServerSupabaseClient {
         submissionDate: client.submission_date,
         lastSession: client.last_session,
         nextSession: client.next_session,
-        behaviouralBriefId: client.behavioural_brief_id,
-        behaviourQuestionnaireId: client.behaviour_questionnaire_id,
-        // Removed 'address' field - it doesn't exist in the database schema
-        howHeardAboutServices: client.how_heard_about_services,
+        // Set default values for fields that may not exist in database
+        behaviouralBriefId: null,
+        behaviourQuestionnaireId: null,
+        address: null,
+        howHeardAboutServices: null,
         createdAt: client.created_at,
       }));
 
@@ -79,6 +81,7 @@ class ServerSupabaseClient {
         return value;
       };
 
+      // Only include fields that definitely exist in the database
       const dbClient = {
         owner_first_name: client.ownerFirstName,
         owner_last_name: client.ownerLastName,
@@ -92,10 +95,11 @@ class ServerSupabaseClient {
         submission_date: client.submissionDate || new Date().toISOString().split('T')[0],
         last_session: client.lastSession || 'N/A',
         next_session: client.nextSession || 'Not Scheduled',
-        behavioural_brief_id: toNullIfEmpty(client.behaviouralBriefId),
-        behaviour_questionnaire_id: toNullIfEmpty(client.behaviourQuestionnaireId),
-        // Removed 'address' field - it doesn't exist in the database schema
-        how_heard_about_services: toNullIfEmpty(client.howHeardAboutServices),
+        // Removed optional fields that may not exist in actual database:
+        // - behavioural_brief_id
+        // - behaviour_questionnaire_id
+        // - address
+        // - how_heard_about_services
       };
 
       console.log('📤 Server: Sending to Supabase:', JSON.stringify(dbClient, null, 2));
@@ -118,6 +122,7 @@ class ServerSupabaseClient {
       const rawData = await response.json();
 
       // Transform the response back to frontend format
+      // Only include fields that definitely exist in the database
       const data = rawData.map((client: any) => ({
         id: client.id,
         ownerFirstName: client.owner_first_name,
@@ -132,10 +137,11 @@ class ServerSupabaseClient {
         submissionDate: client.submission_date,
         lastSession: client.last_session,
         nextSession: client.next_session,
-        behaviouralBriefId: client.behavioural_brief_id,
-        behaviourQuestionnaireId: client.behaviour_questionnaire_id,
-        // Removed 'address' field - it doesn't exist in the database schema
-        howHeardAboutServices: client.how_heard_about_services,
+        // Set default values for fields that may not exist in database
+        behaviouralBriefId: null,
+        behaviourQuestionnaireId: null,
+        address: null,
+        howHeardAboutServices: null,
         createdAt: client.created_at,
       }));
 
@@ -164,10 +170,11 @@ class ServerSupabaseClient {
       if (updates.submissionDate !== undefined) dbUpdates.submission_date = updates.submissionDate;
       if (updates.lastSession !== undefined) dbUpdates.last_session = updates.lastSession;
       if (updates.nextSession !== undefined) dbUpdates.next_session = updates.nextSession;
-      if (updates.behaviouralBriefId !== undefined) dbUpdates.behavioural_brief_id = updates.behaviouralBriefId;
-      if (updates.behaviourQuestionnaireId !== undefined) dbUpdates.behaviour_questionnaire_id = updates.behaviourQuestionnaireId;
-      // Removed 'address' field - it doesn't exist in the database schema
-      if (updates.howHeardAboutServices !== undefined) dbUpdates.how_heard_about_services = updates.howHeardAboutServices;
+      // Removed optional fields that may not exist in actual database:
+      // - behavioural_brief_id
+      // - behaviour_questionnaire_id
+      // - address
+      // - how_heard_about_services
 
       const response = await fetch(`${this.baseUrl}/clients?id=eq.${id}`, {
         method: 'PATCH',
