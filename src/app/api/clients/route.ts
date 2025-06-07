@@ -53,7 +53,7 @@ class ServerSupabaseClient {
         nextSession: client.next_session,
         behaviouralBriefId: client.behavioural_brief_id,
         behaviourQuestionnaireId: client.behaviour_questionnaire_id,
-        address: client.address,
+        // Removed 'address' field - it doesn't exist in the database schema
         howHeardAboutServices: client.how_heard_about_services,
         createdAt: client.created_at,
       }));
@@ -94,7 +94,7 @@ class ServerSupabaseClient {
         next_session: client.nextSession || 'Not Scheduled',
         behavioural_brief_id: toNullIfEmpty(client.behaviouralBriefId),
         behaviour_questionnaire_id: toNullIfEmpty(client.behaviourQuestionnaireId),
-        address: client.address || null,
+        // Removed 'address' field - it doesn't exist in the database schema
         how_heard_about_services: toNullIfEmpty(client.howHeardAboutServices),
       };
 
@@ -134,7 +134,7 @@ class ServerSupabaseClient {
         nextSession: client.next_session,
         behaviouralBriefId: client.behavioural_brief_id,
         behaviourQuestionnaireId: client.behaviour_questionnaire_id,
-        address: client.address,
+        // Removed 'address' field - it doesn't exist in the database schema
         howHeardAboutServices: client.how_heard_about_services,
         createdAt: client.created_at,
       }));
@@ -166,7 +166,7 @@ class ServerSupabaseClient {
       if (updates.nextSession !== undefined) dbUpdates.next_session = updates.nextSession;
       if (updates.behaviouralBriefId !== undefined) dbUpdates.behavioural_brief_id = updates.behaviouralBriefId;
       if (updates.behaviourQuestionnaireId !== undefined) dbUpdates.behaviour_questionnaire_id = updates.behaviourQuestionnaireId;
-      if (updates.address !== undefined) dbUpdates.address = updates.address;
+      // Removed 'address' field - it doesn't exist in the database schema
       if (updates.howHeardAboutServices !== undefined) dbUpdates.how_heard_about_services = updates.howHeardAboutServices;
 
       const response = await fetch(`${this.baseUrl}/clients?id=eq.${id}`, {
