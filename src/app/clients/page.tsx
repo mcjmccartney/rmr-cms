@@ -59,13 +59,38 @@ const getSessions = async () => {
 };
 
 const addClient = async (client: any) => {
-  const response = await fetch('/api/clients', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(client),
-  });
-  if (!response.ok) throw new Error('Failed to add client');
-  return response.json().then(data => data.data);
+  console.log('🌐 addClient: Starting API call...');
+  console.log('📤 addClient: Sending data:', JSON.stringify(client, null, 2));
+
+  try {
+    const response = await fetch('/api/clients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(client),
+    });
+
+    console.log('📡 addClient: Response status:', response.status);
+    console.log('📡 addClient: Response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ addClient: API error response:', errorText);
+      throw new Error(`Failed to add client: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ addClient: API success response:', result);
+
+    if (!result.data) {
+      console.error('❌ addClient: No data in response:', result);
+      throw new Error('No client data returned from API');
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error('❌ addClient: Error in API call:', error);
+    throw error;
+  }
 };
 
 const updateClient = async (id: string, updates: any) => {
@@ -295,6 +320,9 @@ export default function ClientsPage() {
   }, [clientToEdit, editClientForm]);
 
   const handleAddClientSubmit: SubmitHandler<InternalClientFormValues> = async (data) => {
+    console.log('🚀 CLIENT FORM: Starting client submission...');
+    console.log('📝 CLIENT FORM: Form data received:', JSON.stringify(data, null, 2));
+
     setIsSubmittingSheet(true);
     try {
       const clientDataForFirestore: Omit<Client, 'id' | 'behaviouralBriefId' | 'behaviourQuestionnaireId' | 'createdAt' | 'address' | 'howHeardAboutServices' | 'lastSession' | 'nextSession'> & { dogName?: string; isMember?: boolean; isActive?: boolean; submissionDate?: string; fullAddress?: string } = {
@@ -309,7 +337,10 @@ export default function ClientsPage() {
         isActive: data.isActive === undefined ? true : data.isActive,
         submissionDate: data.submissionDate || format(new Date(), "yyyy-MM-dd HH:mm:ss"),
       };
+
+      console.log('📤 CLIENT FORM: Sending to addClient:', JSON.stringify(clientDataForFirestore, null, 2));
       const newClient = await addClient(clientDataForFirestore);
+      console.log('✅ CLIENT FORM: addClient response:', newClient);
       setClients(prevClients => [...prevClients, newClient].sort((a, b) => {
           const nameA = formatFullNameAndDogName(`${a.ownerFirstName} ${a.ownerLastName}`, a.dogName).toLowerCase();
           const nameB = formatFullNameAndDogName(`${b.ownerFirstName} ${b.ownerLastName}`, b.dogName).toLowerCase();
@@ -320,12 +351,16 @@ export default function ClientsPage() {
 
       addClientForm.reset();
       setIsAddClientSheetOpen(false);
+      console.log('🎉 CLIENT FORM: Client added successfully and form closed');
     } catch (err) {
-      console.error("Error adding client to Firestore:", err);
+      console.error("❌ CLIENT FORM: Error adding client:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to add client.";
 
+      // Show error to user
+      alert(`Failed to save client: ${errorMessage}`);
     } finally {
       setIsSubmittingSheet(false);
+      console.log('🏁 CLIENT FORM: Form submission completed');
     }
   };
 
@@ -577,7 +612,19 @@ export default function ClientsPage() {
                         </form>
                       </div>
                     </ScrollArea>
-                    <SheetFooter className="border-t pt-4">
+                    <SheetFooter className="border-t pt-4 space-y-2">
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            console.log('🧪 TEST: Form values:', addClientForm.getValues());
+                            console.log('🧪 TEST: Form errors:', addClientForm.formState.errors);
+                            console.log('🧪 TEST: Form is valid:', addClientForm.formState.isValid);
+                          }}
+                          variant="outline"
+                          className="w-full"
+                        >
+                          Debug Form
+                        </Button>
                         <Button
                           type="submit"
                           form="addClientFormInSheet"
