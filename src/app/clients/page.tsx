@@ -300,11 +300,11 @@ export default function ClientsPage() {
       const clientDataForFirestore: Omit<Client, 'id' | 'behaviouralBriefId' | 'behaviourQuestionnaireId' | 'createdAt' | 'address' | 'howHeardAboutServices' | 'lastSession' | 'nextSession'> & { dogName?: string; isMember?: boolean; isActive?: boolean; submissionDate?: string; fullAddress?: string } = {
         ownerFirstName: data.ownerFirstName,
         ownerLastName: data.ownerLastName,
-        contactEmail: data.contactEmail || '', // Provide empty string instead of undefined
-        contactNumber: data.contactNumber ? formatPhoneNumber(data.contactNumber) : '', // Provide empty string instead of undefined
-        fullAddress: data.fullAddress || '',
-        postcode: data.postcode || '', // Postcode no longer required - provide empty string
-        dogName: data.dogName || undefined,
+        contactEmail: data.contactEmail?.trim() || undefined, // Use undefined for empty values
+        contactNumber: data.contactNumber?.trim() ? formatPhoneNumber(data.contactNumber) : undefined, // Use undefined for empty values
+        fullAddress: data.fullAddress?.trim() || undefined,
+        postcode: data.postcode?.trim() || undefined, // Use undefined for empty values
+        dogName: data.dogName?.trim() || undefined,
         isMember: data.isMember || false,
         isActive: data.isActive === undefined ? true : data.isActive,
         submissionDate: data.submissionDate || format(new Date(), "yyyy-MM-dd HH:mm:ss"),

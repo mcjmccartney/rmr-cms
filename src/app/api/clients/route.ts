@@ -69,26 +69,36 @@ class ServerSupabaseClient {
 
   async addClient(client: any) {
     console.log('➕ Server: Adding client to Supabase...');
+    console.log('📝 Server: Raw client data received:', JSON.stringify(client, null, 2));
     try {
       // Transform the client data to match database schema
+      // Helper function to convert empty strings to null
+      const toNullIfEmpty = (value: any) => {
+        if (value === undefined || value === null) return null;
+        if (typeof value === 'string' && value.trim() === '') return null;
+        return value;
+      };
+
       const dbClient = {
         owner_first_name: client.ownerFirstName,
         owner_last_name: client.ownerLastName,
-        contact_email: client.contactEmail || null, // Allow NULL
-        contact_number: client.contactNumber || null, // Allow NULL
-        postcode: client.postcode || null, // Allow NULL - no longer required
-        full_address: client.fullAddress || null,
-        dog_name: client.dogName || null,
+        contact_email: toNullIfEmpty(client.contactEmail),
+        contact_number: toNullIfEmpty(client.contactNumber),
+        postcode: toNullIfEmpty(client.postcode),
+        full_address: toNullIfEmpty(client.fullAddress),
+        dog_name: toNullIfEmpty(client.dogName),
         is_member: client.isMember || false,
         is_active: client.isActive !== undefined ? client.isActive : true,
-        submission_date: client.submissionDate,
+        submission_date: client.submissionDate || new Date().toISOString().split('T')[0],
         last_session: client.lastSession || 'N/A',
         next_session: client.nextSession || 'Not Scheduled',
-        behavioural_brief_id: client.behaviouralBriefId || null,
-        behaviour_questionnaire_id: client.behaviourQuestionnaireId || null,
+        behavioural_brief_id: toNullIfEmpty(client.behaviouralBriefId),
+        behaviour_questionnaire_id: toNullIfEmpty(client.behaviourQuestionnaireId),
         address: client.address || null,
-        how_heard_about_services: client.howHeardAboutServices || null,
+        how_heard_about_services: toNullIfEmpty(client.howHeardAboutServices),
       };
+
+      console.log('📤 Server: Sending to Supabase:', JSON.stringify(dbClient, null, 2));
 
       const response = await fetch(`${this.baseUrl}/clients?select=*`, {
         method: 'POST',
