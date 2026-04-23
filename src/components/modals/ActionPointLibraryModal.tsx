@@ -19,6 +19,7 @@ interface ActionPointLibraryModalProps {
   personalizeActionPoint: (actionPoint: ActionPoint, dogName: string, dogGender: 'Male' | 'Female') => ActionPoint;
   getSessionDogName: () => string;
   getDogGender: () => 'Male' | 'Female';
+  previouslyUsedIds?: Set<string>;
 }
 
 export default function ActionPointLibraryModal({
@@ -29,7 +30,8 @@ export default function ActionPointLibraryModal({
   onActionPointToggle,
   personalizeActionPoint,
   getSessionDogName,
-  getDogGender
+  getDogGender,
+  previouslyUsedIds
 }: ActionPointLibraryModalProps) {
   const [actionPointSearch, setActionPointSearch] = useState('');
   const [isMobile, setIsMobile] = useState(false);
@@ -103,6 +105,7 @@ export default function ActionPointLibraryModal({
           <div className="space-y-3">
             {filteredActionPoints.map(actionPoint => {
               const isSelected = selectedActionPoints.includes(actionPoint.id);
+              const isPreviouslyUsed = !isSelected && previouslyUsedIds?.has(actionPoint.id);
               const personalizedActionPoint = personalizeActionPoint(
                 actionPoint,
                 getSessionDogName(),
@@ -115,6 +118,8 @@ export default function ActionPointLibraryModal({
                   className={`p-4 border rounded-md cursor-pointer transition-colors ${
                     isSelected
                       ? 'border-amber-800 bg-amber-800/10'
+                      : isPreviouslyUsed
+                      ? 'border-gray-200 bg-gray-50 opacity-50 hover:opacity-70'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                   onClick={(e) => {
@@ -134,6 +139,9 @@ export default function ActionPointLibraryModal({
                       className="text-sm text-gray-600 mt-2"
                       fallback={personalizedActionPoint.details}
                     />
+                    {isPreviouslyUsed && (
+                      <p className="text-xs text-gray-400 mt-2 italic">Used in a previous plan</p>
+                    )}
                   </div>
                 </div>
               );
@@ -192,6 +200,7 @@ export default function ActionPointLibraryModal({
             <div className="space-y-2">
               {filteredActionPoints.map(actionPoint => {
                 const isSelected = selectedActionPoints.includes(actionPoint.id);
+                const isPreviouslyUsed = !isSelected && previouslyUsedIds?.has(actionPoint.id);
                 const personalizedActionPoint = personalizeActionPoint(
                   actionPoint,
                   getSessionDogName(),
@@ -204,6 +213,8 @@ export default function ActionPointLibraryModal({
                     className={`p-3 border rounded-md cursor-pointer transition-colors ${
                       isSelected
                         ? 'border-amber-800 bg-amber-800/10'
+                        : isPreviouslyUsed
+                        ? 'border-gray-200 bg-gray-50 opacity-50 hover:opacity-70'
                         : 'border-gray-300 hover:border-gray-400'
                     }`}
                     onClick={(e) => {
@@ -223,6 +234,9 @@ export default function ActionPointLibraryModal({
                         className="text-sm text-gray-600 mt-1"
                         fallback={personalizedActionPoint.details}
                       />
+                      {isPreviouslyUsed && (
+                        <p className="text-xs text-gray-400 mt-1 italic">Used in a previous plan</p>
+                      )}
                     </div>
                   </div>
                 );

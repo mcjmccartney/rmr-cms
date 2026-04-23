@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -30,6 +30,21 @@ function SessionPlanContent() {
 
   // Use action points from state (loaded from Supabase) or fallback to predefined ones
   const actionPoints = state.actionPoints.length > 0 ? state.actionPoints : predefinedActionPoints;
+
+  // Collect action point IDs used in previous session plans for this client
+  const previouslyUsedActionPointIds = useMemo(() => {
+    if (!session?.clientId) return new Set<string>();
+    const clientSessionIds = new Set(
+      state.sessions
+        .filter(s => s.clientId === session.clientId && s.id !== session.id)
+        .map(s => s.id)
+    );
+    const used = new Set<string>();
+    state.sessionPlans
+      .filter(sp => clientSessionIds.has(sp.sessionId))
+      .forEach(sp => sp.actionPoints?.forEach(id => used.add(id)));
+    return used;
+  }, [state.sessions, state.sessionPlans, session]);
 
 
 
@@ -1313,6 +1328,7 @@ function SessionPlanContent() {
         personalizeActionPoint={personalizeActionPoint}
         getSessionDogName={getSessionDogName}
         getDogGender={getDogGender}
+        previouslyUsedIds={previouslyUsedActionPointIds}
       />
 
       {/* Dog Club Guides Modal */}
