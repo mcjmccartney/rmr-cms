@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     // Validate amount
     const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    if (isNaN(parsedAmount) || parsedAmount < 0) {
       return addSecurityHeaders(NextResponse.json(
         { error: 'Invalid amount' },
         { status: 400 }
