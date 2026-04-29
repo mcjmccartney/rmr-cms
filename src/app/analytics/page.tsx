@@ -122,7 +122,8 @@ function AnalyticsContent() {
         return { name, total, clientId, client };
       })
       .filter((x): x is { name: string; total: number; clientId: string; client: typeof clients[0] } => x !== null)
-      .sort((a, b) => b.total - a.total);
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 20);
   }, [sessions, clients, memberships, clientEmailAliases]);
 
   // --- Average sessions per client ---
