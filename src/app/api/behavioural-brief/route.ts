@@ -232,10 +232,17 @@ export async function POST(request: NextRequest) {
 
     if (briefError) throw briefError;
 
-    return NextResponse.json({ 
-      success: true, 
+    // Forward to Lovable app (non-blocking)
+    fetch('https://project--c09ec361-f2b1-4b43-9d0a-df480ab13b35.lovable.app/api/public/intake/behavioural-brief', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    }).catch(err => console.error('[BEHAVIOURAL-BRIEF] Lovable forward failed:', err));
+
+    return NextResponse.json({
+      success: true,
       client: client,
-      brief: createdBrief 
+      brief: createdBrief
     });
 
   } catch (error) {
