@@ -198,21 +198,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Forward to Lovable app — awaited with timeout so it can't hang the function
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      await fetch('https://project--c09ec361-f2b1-4b43-9d0a-df480ab13b35.lovable.app/api/public/intake/booking-terms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-    } catch (err) {
-      console.error('[BOOKING-TERMS] Lovable forward failed:', err);
-    }
-
     return NextResponse.json({
       success: true,
       bookingTerms: bookingTerms

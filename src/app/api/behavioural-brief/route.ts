@@ -232,21 +232,6 @@ export async function POST(request: NextRequest) {
 
     if (briefError) throw briefError;
 
-    // Forward to Lovable app — awaited with timeout so it can't hang the function
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      await fetch('https://project--c09ec361-f2b1-4b43-9d0a-df480ab13b35.lovable.app/api/public/intake/behavioural-brief', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-    } catch (err) {
-      console.error('[BEHAVIOURAL-BRIEF] Lovable forward failed:', err);
-    }
-
     return NextResponse.json({
       success: true,
       client: client,
